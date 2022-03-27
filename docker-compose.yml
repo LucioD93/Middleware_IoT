@@ -1,0 +1,19 @@
+version: "3.9"
+services:
+    compile:
+      container_name: middleware-compiler
+      image: middleware-compiler
+      volumes:
+        - "./middleware:/code"
+      command: >-
+        bash -c "
+          make master
+        "
+
+    bash:
+      container_name: bash
+      image: middleware-compiler
+      volumes:
+        - "./middleware:/code"
+      command:
+        - bash
