@@ -32,8 +32,6 @@ void * handle_connection(void* p_client_socket) {
 
     printf("Request: [%s]\n", buffer);
 
-//    sleep(0.5);
-
     // Send response
     write(client_socket, "Thanks for coming!\n", 19);
 
@@ -41,7 +39,7 @@ void * handle_connection(void* p_client_socket) {
     return NULL;
 }
 
-void * thread_function(void *arg) {
+_Noreturn void * thread_function(void *arg) {
     while (true) {
         pthread_mutex_lock(&mutex);
         pthread_cond_wait(&condition_var, &mutex);
@@ -49,15 +47,12 @@ void * thread_function(void *arg) {
         pthread_mutex_unlock(&mutex);
         if (pclient != NULL) {
             // There is a connection
-            printf("DEUQUED");
             handle_connection(pclient);
-        } else {
-            printf("NULL\n");
         }
     }
 }
 
-void master_server() {
+_Noreturn void master_server() {
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
 
@@ -116,4 +111,48 @@ void master_server() {
         pthread_cond_signal(&condition_var);
         pthread_mutex_unlock(&mutex);
     }
+}
+
+
+void worker(Metadata worker_metadata) {
+    int sockfd, n, sendbytes;
+    SA_IN servaddr;
+    char sendline[MAXLINE];
+    char recvline[MAXLINE];
+
+    check(
+    (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+    "Client socket creation failed"
+    );
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(SERVERPORT);
+
+    check(
+            (inet_pton(AF_INET, SERVERADDRESS, &servaddr.sin_addr)),
+            "Server address translation failed"
+    );
+
+    check(
+            (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
+            "Connection failed"
+    );
+
+    sprintf(sendline, "HELLO FROM WORKER %s\n", worker_metadata.uuid);
+    sendbytes = strlen(sendline);
+
+    check(
+            (write(sockfd, &sendline, sendbytes) != sendbytes),
+            "Socket write failed"
+    );
+
+    memset(recvline, 0, MAXLINE);
+
+    while (( n = read(sockfd, recvline, MAXLINE - 1)) > 0) {
+        printf("%s", recvline);
+    }
+
+    check((n > 0), "socket read failed");
+    printf("WORKER FINISHED");
 }

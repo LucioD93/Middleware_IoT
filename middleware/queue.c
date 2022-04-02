@@ -8,7 +8,6 @@ node_t* tail = NULL;
 
 // Add new socket to the queue
 void enqueue(int *client_socket) {
-    printf("QUEUE %d -", *client_socket);
     node_t *new_node = malloc(sizeof(node_t));
     new_node->client_socket = client_socket;
     new_node->next = NULL;

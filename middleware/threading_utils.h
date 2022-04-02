@@ -11,18 +11,18 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#include "constants.h"
 #include "queue.h"
+#include "metadata_utils.h"
 
-#define SERVERPORT 8989
 #define BUFFERSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVERBACKLOG 10
 #define THREAD_POOL_SIZE 2
 
-typedef struct sockaddr_in SA_IN;
-typedef struct sockaddr SA;
 
+_Noreturn void master_server();
 
-void master_server();
+void worker(Metadata);
 
 #endif //MIDDLEWARE_THREADING_UTILS_H

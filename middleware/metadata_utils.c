@@ -149,15 +149,15 @@ int get_ram_score() {
 
 }
 
-Resource *get_local_resources(char *id) {
+Resource get_local_resources() {
 
-    Resource *local_resources = malloc(sizeof(Resource));
+    Resource local_resources;
 
     int block_size_bytes = read_int_from_file("/sys/devices/system/memory/block_size_bytes");
 
     // Deduct two from CPU count because of cpufreq and cpuidle files
-    local_resources->cpu = get_cpu_score();
-    local_resources->ram = get_ram_score();
+    local_resources.cpu = get_cpu_score();
+    local_resources.ram = get_ram_score();
 
     return local_resources;
 }

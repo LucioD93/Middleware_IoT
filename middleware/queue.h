@@ -1,7 +1,3 @@
-//
-// Created by Lucio Mederos on 25/3/22.
-//
-
 #ifndef MIDDLEWARE_QUEUE_H
 #define MIDDLEWARE_QUEUE_H
 
