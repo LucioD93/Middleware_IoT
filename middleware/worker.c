@@ -16,7 +16,10 @@ int main(void) {
 
     Metadata worker_metadata = create_worker_metadata();
     printf("WORKER UUID [%s]\n", worker_metadata.uuid);
-    printf("CPU %d\nRAM %d\n", worker_metadata.resources.cpu, worker_metadata.resources.ram);
+    printf("CPU %d - RAM %d - GPU %d\n", worker_metadata.resources.cpu, worker_metadata.resources.ram, worker_metadata.resources.gpu);
+
+    char *metadata_as_str = metadata_to_str(worker_metadata);
+    printf("METADATA STR [%s]\n", metadata_as_str);
 
     worker(worker_metadata);
 }

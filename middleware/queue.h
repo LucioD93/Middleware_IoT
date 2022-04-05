@@ -1,11 +1,11 @@
 #ifndef MIDDLEWARE_QUEUE_H
 #define MIDDLEWARE_QUEUE_H
 
-struct node {
-    struct node* next;
+struct queue_node {
+    struct queue_node* next;
     int *client_socket;
 };
-typedef struct node node_t;
+typedef struct queue_node node_t;
 
 void enqueue(int* client_socket);
 int* dequeue();

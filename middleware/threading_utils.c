@@ -32,8 +32,19 @@ void * handle_connection(void* p_client_socket) {
 
     printf("Request: [%s]\n", buffer);
 
+    Metadata client_metadata = str_to_metadata(buffer);
+
+    printf("CLIENT ========\n");
+    printf("WORKER UUID [%s]\n", client_metadata.uuid);
+    printf("CPU %d- RAM %d - GPU %d\n", client_metadata.resources.cpu, client_metadata.resources.ram, client_metadata.resources.gpu);
+    printf("CLIENT ========\n");
+
+    add_to_list(client_metadata);
+
     // Send response
-    write(client_socket, "Thanks for coming!\n", 19);
+    write(client_socket, "Thanks for coming!\n\n", 19);
+
+    show_list();
 
     fflush(stdout);
     return NULL;
@@ -139,8 +150,12 @@ void worker(Metadata worker_metadata) {
             "Connection failed"
     );
 
-    sprintf(sendline, "HELLO FROM WORKER %s\n", worker_metadata.uuid);
-    sendbytes = strlen(sendline);
+    char *metadata_str = metadata_to_str(worker_metadata);
+    strcpy(sendline, metadata_str);
+    sendbytes = sizeof(sendline);
+    free(metadata_str);
+
+    printf("SENDING: [%s]\n", sendline);
 
     check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
@@ -154,5 +169,6 @@ void worker(Metadata worker_metadata) {
     }
 
     check((n > 0), "socket read failed");
-    printf("WORKER FINISHED");
+    close(sockfd);
+    printf("WORKER FINISHED\n");
 }

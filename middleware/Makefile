@@ -23,3 +23,6 @@ run-master: master
 
 run-worker: worker
 	./worker
+
+bash:
+	bash
