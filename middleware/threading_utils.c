@@ -13,42 +13,45 @@ int check(int exp, const char *msg) {
     return exp;
 }
 
-void * handle_connection(void* p_client_socket) {
+
+_Noreturn void * handle_connection(void* p_client_socket) {
     int client_socket = *((int*)p_client_socket);
     free(p_client_socket);
     printf("Got a connection from %d\n", client_socket);
-
     char buffer[BUFFERSIZE];
     size_t bytes_read;
-    int message_size = 0;
+    size_t message_size;
 
-    // read the client's message
-    while((bytes_read = read(client_socket, buffer + message_size, sizeof(buffer) - message_size - 1)) > 0) {
-        message_size += bytes_read;
-        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == '\n') break;
+    while(true) {
+        memset(&buffer, 0, BUFFERSIZE);
+        bytes_read = 0;
+        message_size = 0;
+        // read the client's message
+        while((bytes_read = read(client_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+            message_size += bytes_read;
+            if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+        }
+        check(bytes_read, "Receiving failed!");
+        buffer[message_size - 1] = 0; // null terminate
+
+        printf("Request (%lu)(%lu): [%s]\n", message_size, strlen(buffer), buffer);
+
+        Metadata worker_metadata = str_to_metadata(buffer);
+        printf("METADATA RECEIVED\n");
+        print_metadata(worker_metadata);
+        printf("===========\n");
+
+        add_to_list(worker_metadata);
+
+        // Send response (ACK)
+//        write(client_socket, "Thanks for coming!\n\n", 19);
+
+        show_list();
+
+        fflush(stdout);
     }
-    check(bytes_read, "Receiving failed!");
-    buffer[message_size - 1] = 0; // null terminate
-
-    printf("Request: [%s]\n", buffer);
-
-    Metadata client_metadata = str_to_metadata(buffer);
-
-    printf("CLIENT ========\n");
-    printf("WORKER UUID [%s]\n", client_metadata.uuid);
-    printf("CPU %d- RAM %d - GPU %d\n", client_metadata.resources.cpu, client_metadata.resources.ram, client_metadata.resources.gpu);
-    printf("CLIENT ========\n");
-
-    add_to_list(client_metadata);
-
-    // Send response
-    write(client_socket, "Thanks for coming!\n\n", 19);
-
-    show_list();
-
-    fflush(stdout);
-    return NULL;
 }
+
 
 _Noreturn void * thread_function(void *arg) {
     while (true) {
@@ -63,6 +66,7 @@ _Noreturn void * thread_function(void *arg) {
     }
 }
 
+
 _Noreturn void master_server() {
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
@@ -73,8 +77,8 @@ _Noreturn void master_server() {
     }
 
     check(
-            (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-            "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
+        "Failed to create socket!"
     );
 
     bzero(&server_addr, sizeof(server_addr));
@@ -83,17 +87,17 @@ _Noreturn void master_server() {
     server_addr.sin_port = htons(SERVERPORT);
 
     check(
-            bind(
-                    server_socket,
-                    (SA*) &server_addr,
-                    sizeof(server_addr)
-            ),
-            "Bind failed!"
+        bind(
+            server_socket,
+            (SA*) &server_addr,
+            sizeof(server_addr)
+        ),
+        "Bind failed!"
     );
 
     check(
-            listen(server_socket, SERVERBACKLOG),
-            "Listen failed!"
+        listen(server_socket, SERVERBACKLOG),
+        "Listen failed!"
     );
 
     while(true) {
@@ -102,12 +106,12 @@ _Noreturn void master_server() {
         addr_size = sizeof(SA_IN);
 
         check(
-                (client_socket = accept(
-                        server_socket,
-                        (SA*)&client_addr,
-                        (socklen_t*) &addr_size
-                )),
-                "Accept failed!"
+            (client_socket = accept(
+                server_socket,
+                (SA*)&client_addr,
+                (socklen_t*) &addr_size
+            )),
+            "Accept failed!"
         );
 
         // Queue connection so that a worker thread can grab it
@@ -118,22 +122,25 @@ _Noreturn void master_server() {
         // Prevent race condition
         pthread_mutex_lock(&mutex);
         enqueue(pclient);
-        show_queue();
         pthread_cond_signal(&condition_var);
         pthread_mutex_unlock(&mutex);
     }
 }
 
 
-void worker(Metadata worker_metadata) {
-    int sockfd, n, sendbytes;
+_Noreturn void worker_metadata_thread() {
+    Metadata worker_metadata = create_worker_metadata();
+    printf("WORKER UUID [%s]\n", worker_metadata.uuid);
+    printf("CPU %d - RAM %d - GPU %d\n", worker_metadata.resources.cpu, worker_metadata.resources.ram, worker_metadata.resources.gpu);
+
+    int sockfd, sendbytes;
     SA_IN servaddr;
     char sendline[MAXLINE];
-    char recvline[MAXLINE];
+    char *metadata_str;
 
     check(
-    (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
-    "Client socket creation failed"
+        (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+        "Client socket creation failed"
     );
 
     bzero(&servaddr, sizeof(servaddr));
@@ -141,8 +148,8 @@ void worker(Metadata worker_metadata) {
     servaddr.sin_port = htons(SERVERPORT);
 
     check(
-            (inet_pton(AF_INET, SERVERADDRESS, &servaddr.sin_addr)),
-            "Server address translation failed"
+        (inet_pton(AF_INET, SERVERADDRESS, &servaddr.sin_addr)),
+        "Server address translation failed"
     );
 
     check(
@@ -150,25 +157,27 @@ void worker(Metadata worker_metadata) {
             "Connection failed"
     );
 
-    char *metadata_str = metadata_to_str(worker_metadata);
-    strcpy(sendline, metadata_str);
-    sendbytes = sizeof(sendline);
-    free(metadata_str);
+    printf("CONNECTED\n");
 
-    printf("SENDING: [%s]\n", sendline);
+    while(true) {
+        worker_metadata.resources.cpu_usage = get_cpu_usage();
+        metadata_str = metadata_to_str(worker_metadata);
+        strcpy(sendline, metadata_str);
+        sendbytes = sizeof(sendline);
+        free(metadata_str);
 
-    check(
+        printf("SENDING:[%d][%s]\n", sendbytes, sendline);
+
+        check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
-    );
-
-    memset(recvline, 0, MAXLINE);
-
-    while (( n = read(sockfd, recvline, MAXLINE - 1)) > 0) {
-        printf("%s", recvline);
+        );
+        sleep(5);
     }
 
-    check((n > 0), "socket read failed");
-    close(sockfd);
-    printf("WORKER FINISHED\n");
+}
+
+
+void worker() {
+    worker_metadata_thread();
 }

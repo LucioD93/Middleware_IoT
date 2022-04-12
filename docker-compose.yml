@@ -1,19 +1,14 @@
 version: "3.9"
 services:
-    compile:
+    compiler:
       container_name: middleware-compiler
-      image: middleware-compiler
+      build:
+        context: middleware
+        dockerfile: Dockerfile
       volumes:
         - "./middleware:/code"
-      command: >-
-        bash -c "
-          make master
-        "
-
-    bash:
-      container_name: bash
-      image: middleware-compiler
-      volumes:
-        - "./middleware:/code"
-      command:
-        - bash
+      ports:
+        - "8989:8989"
+      entrypoint: /bin/sh
+      stdin_open: true
+      tty: true

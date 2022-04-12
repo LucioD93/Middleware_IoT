@@ -1,23 +1,13 @@
 # Build compiler image
 build-compiler:
-	docker build --tag middleware-compiler middleware/.
+	docker compose build
 
-# Compilers
-compile-master: build-compiler
-	docker-compose run compile
+up:
+	docker compose up -d
 
-# End compilers
+down:
+	docker compose down
 
-# Runners
-run-master: compile-master
-	docker-compose run compile ./master
-
-# End runners
-
-# Utils
-
-clean: build-compiler
-	docker-compose run compile make clean
-
-bash: build-compiler
-	docker compose run bash
+# Attach bash shell
+bash: up
+	docker compose exec compiler /bin/bash

@@ -2,27 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
-#include <uuid/uuid.h>
 #include "metadata_utils.h"
 
 metadata_node* metadata_head = NULL;
-
-
-int count_files_in_dir_by_name(const char *directory, const char *name) {
-    int count = 0;
-    DIR *d;
-    struct dirent *dir;
-    d = opendir(directory);
-    if (d) {
-        while ((dir = readdir(d)) != NULL) {
-            if (strncmp(name, dir->d_name, strlen(name)) == 0) {
-                count++;
-            }
-        }
-        closedir(d);
-    }
-    return(count);
-}
 
 
 int read_int_from_file(const char* file_name) {
@@ -154,16 +136,34 @@ int get_ram_score() {
 }
 
 
+int get_cpu_usage() {
+    float load;
+
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen("/proc/loadavg", "r");
+    if (fp == NULL)
+        exit(EXIT_FAILURE);
+    read = getline(&line, &len, fp);
+    if (read == -1)
+        exit(EXIT_FAILURE);
+    sscanf(line, "%f", &load);
+    printf("GOT LOAD %f\n", load);
+    return (int)(load * 100);
+}
+
+
 Resource get_local_resources() {
 
     Resource local_resources;
 
-    int block_size_bytes = read_int_from_file("/sys/devices/system/memory/block_size_bytes");
-
-    // Deduct two from CPU count because of cpufreq and cpuidle files
     local_resources.cpu = get_cpu_score();
     local_resources.ram = get_ram_score();
     local_resources.gpu = 3;
+    local_resources.cpu_usage = get_cpu_usage();
 
     return local_resources;
 }
@@ -172,6 +172,16 @@ void generate_uuid(char *out) {
     uuid_t uuid;
     uuid_generate_random(uuid);
     uuid_unparse_lower(uuid, out);
+}
+
+
+Metadata create_worker_metadata() {
+    Metadata worker_metadata;
+
+    generate_uuid(worker_metadata.uuid);
+    worker_metadata.resources = get_local_resources();
+
+    return worker_metadata;
 }
 
 
@@ -187,8 +197,8 @@ char *metadata_to_str(Metadata metadata) {
     len = snprintf (
             dummy,
             len,
-            "%d,%d,%d,%s",
-            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.uuid
+            "%d,%d,%d,%d,%s\n",
+            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.resources.cpu_usage, metadata.uuid
     );
     free(dummy);
 
@@ -203,8 +213,8 @@ char *metadata_to_str(Metadata metadata) {
         snprintf (
             apstr,
             len + 1,
-            "%d,%d,%d,%s",
-            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.uuid
+            "%d,%d,%d,%d,%s\n",
+            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.resources.cpu_usage, metadata.uuid
         ) > len + 1
     )
     {
@@ -220,8 +230,8 @@ Metadata str_to_metadata(const char *str) {
     Metadata metadata;
     sscanf(
             str,
-            "%d,%d,%d,%s",
-            &metadata.resources.cpu, &metadata.resources.ram, &metadata.resources.gpu, metadata.uuid
+            "%d,%d,%d,%d,%s\n",
+            &metadata.resources.cpu, &metadata.resources.ram, &metadata.resources.gpu, &metadata.resources.cpu_usage, metadata.uuid
     );
 
     return metadata;
@@ -231,8 +241,9 @@ Metadata str_to_metadata(const char *str) {
 void add_to_list(Metadata worker_metadata) {
     metadata_node *current = metadata_head;
     while (current != NULL && current->next != NULL) {
-        if (strcmp(current->worker_metadata->uuid, worker_metadata.uuid) == 0) {
+        if (memcmp(current->worker_metadata->uuid, worker_metadata.uuid, UUID_STR_LEN) == 0) {
             printf("FOUND REPETITION %s\n", current->worker_metadata->uuid);
+            current->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
             return;
         }
         current = current->next;
@@ -244,10 +255,22 @@ void add_to_list(Metadata worker_metadata) {
     new_node->worker_metadata->resources.cpu = worker_metadata.resources.cpu;
     new_node->worker_metadata->resources.ram = worker_metadata.resources.ram;
     new_node->worker_metadata->resources.gpu = worker_metadata.resources.gpu;
-    
+    new_node->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
     new_node->next = metadata_head;
     
     metadata_head = new_node;
+}
+
+
+void print_metadata(Metadata metadata) {
+    printf(
+            "ID: [%s]\n   CPU %d - RAM %d - GPU %d - CPU Usage %d\n",
+            metadata.uuid,
+            metadata.resources.cpu,
+            metadata.resources.ram,
+            metadata.resources.gpu,
+            metadata.resources.cpu_usage
+    );
 }
 
 
@@ -255,13 +278,7 @@ void show_list() {
     printf("Metadata list\n------------------\n");
     metadata_node *node = metadata_head;
     while (node != NULL) {
-        printf(
-            "ID: %s\n   CPU %d - RAM %d, GPU %d\n",
-            node->worker_metadata->uuid,
-            node->worker_metadata->resources.cpu,
-            node->worker_metadata->resources.ram,
-            node->worker_metadata->resources.gpu
-        );
+        print_metadata(*node->worker_metadata);
         node = node->next;
     }
     printf("---------\n");

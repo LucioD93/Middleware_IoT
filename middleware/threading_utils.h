@@ -18,11 +18,11 @@
 #define BUFFERSIZE 4096
 #define SOCKETERROR (-1)
 #define SERVERBACKLOG 10
-#define THREAD_POOL_SIZE 2
+#define THREAD_POOL_SIZE 5
 
 
 _Noreturn void master_server();
 
-void worker(Metadata);
+void worker();
 
 #endif //MIDDLEWARE_THREADING_UTILS_H

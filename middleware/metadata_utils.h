@@ -7,6 +7,7 @@ typedef struct RS {
     int cpu;
     int ram;
     int gpu;
+    int cpu_usage;
 } Resource;
 
 typedef struct MD {
@@ -20,12 +21,16 @@ struct list_node {
 };
 typedef struct list_node metadata_node;
 
+int get_cpu_usage();
+
 Resource get_local_resources();
+Metadata create_worker_metadata();
 void generate_uuid(char *out);
 char *metadata_to_str(Metadata metadata);
 Metadata str_to_metadata(const char *str);
 
 void add_to_list(Metadata worker_metadata);
+void print_metadata(Metadata metadata);
 void show_list();
 
 #endif //MIDDLEWARE_METADATA_UTILS_H
