@@ -41,10 +41,9 @@ _Noreturn void * handle_connection(void* p_client_socket) {
         print_metadata(worker_metadata);
         printf("===========\n");
 
+        pthread_mutex_lock(&mutex);
         add_to_list(worker_metadata);
-
-        // Send response (ACK)
-//        write(client_socket, "Thanks for coming!\n\n", 19);
+        pthread_mutex_unlock(&mutex);
 
         show_list();
 
