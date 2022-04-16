@@ -7,17 +7,6 @@
 metadata_node* metadata_head = NULL;
 
 
-int read_int_from_file(const char* file_name) {
-    FILE* file = fopen (file_name, "r");
-    int value = 0;
-
-    fscanf (file, "%d", &value);
-    fclose (file);
-
-    return value;
-}
-
-
 int get_cpu_score() {
     int processors = 0;
     int cores = 0;
@@ -240,7 +229,7 @@ Metadata str_to_metadata(const char *str) {
 
 void add_to_list(Metadata worker_metadata) {
     metadata_node *current = metadata_head;
-    while (current != NULL && current->next != NULL) {
+    while (current != NULL) {
         if (memcmp(current->worker_metadata->uuid, worker_metadata.uuid, UUID_STR_LEN) == 0) {
             printf("FOUND REPETITION %s\n", current->worker_metadata->uuid);
             current->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;

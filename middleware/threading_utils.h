@@ -20,9 +20,6 @@
 #define SERVERBACKLOG 10
 #define THREAD_POOL_SIZE 5
 
-
-_Noreturn void master_server();
-
-void worker();
+int check(int exp, const char *msg);
 
 #endif //MIDDLEWARE_THREADING_UTILS_H
