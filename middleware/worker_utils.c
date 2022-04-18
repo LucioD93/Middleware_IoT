@@ -31,7 +31,7 @@ _Noreturn void worker_metadata_thread() {
 
     printf("CONNECTED\n");
 
-    while(keep_running == 1) {
+    while(true) {
         worker_metadata.resources.cpu_usage = get_cpu_usage();
         metadata_str = metadata_to_str(worker_metadata);
         strcpy(sendline, metadata_str);

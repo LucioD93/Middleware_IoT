@@ -57,7 +57,7 @@ _Noreturn void * thread_function(void *arg) {
 }
 
 
-_Noreturn void master_server() {
+_Noreturn void master_server(void *arg) {
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
 

@@ -17,8 +17,6 @@
 #include "threading_utils.h"
 
 
-static volatile sig_atomic_t keep_running = 1;
-
 void worker();
 
 #endif //MIDDLEWARE_WORKER_UTILS_H

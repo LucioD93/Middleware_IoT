@@ -1,8 +1,7 @@
 #include "worker_utils.h"
 
 void term() {
-    printf("Caught!\n");
-    keep_running = 0;
+    printf("Exit with ctrl + Z!\n");
 }
 
 int main(void) {
