@@ -38,13 +38,21 @@ int* dequeue(node_t** queue_head, node_t** queue_tail) {
 
 // Add new socket to the queue
 void enqueue_worker_connection(int *socket_descriptor) {
-    printf("QUEUE\n");
     enqueue(&worker_queue_head, &worker_queue_tail, socket_descriptor);
 }
 
-
 // Get first node in the queue, return NULL if empty
 int* dequeue_worker_connection() {
-    printf("DEQUEUE\n");
     return dequeue(&worker_queue_head, &worker_queue_tail);
+}
+
+
+// Add new socket to the queue
+void enqueue_client_connection(int *socket_descriptor) {
+    enqueue(&client_queue_head, &client_queue_tail, socket_descriptor);
+}
+
+// Get first node in the queue, return NULL if empty
+int* dequeue_client_connection() {
+    return dequeue(&client_queue_head, &client_queue_tail);
 }
