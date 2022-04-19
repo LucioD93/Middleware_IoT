@@ -3,12 +3,12 @@
 
 struct queue_node {
     struct queue_node* next;
-    int *client_socket;
+    int *socket_descriptor;
 };
 typedef struct queue_node node_t;
 
-void enqueue(int* client_socket);
-int* dequeue();
+void enqueue_worker_connection(int* socket_descriptor);
+int* dequeue_worker_connection();
 
 void show_queue();
 

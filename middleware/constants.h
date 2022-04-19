@@ -2,7 +2,8 @@
 #define MIDDLEWARE_CONSTANTS_H
 
 // Networking constants
-#define SERVERPORT 8989
+#define WORKERS_PORT 8989
+#define CLIENTS_PORT 8991
 #define MAXLINE 4096
 #define SERVERADDRESS "127.0.0.1"
 

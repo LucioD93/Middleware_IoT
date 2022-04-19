@@ -2,47 +2,49 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-node_t* head = NULL;
-node_t* tail = NULL;
+node_t* worker_queue_head = NULL;
+node_t* worker_queue_tail = NULL;
+
+node_t* client_queue_head = NULL;
+node_t* client_queue_tail = NULL;
 
 
-// Add new socket to the queue
-void enqueue(int *client_socket) {
+void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor) {
     node_t *new_node = malloc(sizeof(node_t));
-    new_node->client_socket = client_socket;
+    new_node->socket_descriptor = socket_descriptor;
     new_node->next = NULL;
-    if (tail == NULL) {
-        head = new_node;
+    if (*queue_tail == NULL) {
+        *queue_head = new_node;
     } else {
-        tail->next = new_node;
+        (*queue_tail)->next = new_node;
     }
-    tail = new_node;
+    *queue_tail = new_node;
 }
 
-
-// Get first node in the queue, return NULL if empty
-int* dequeue() {
-    if (head == NULL) {
+int* dequeue(node_t** queue_head, node_t** queue_tail) {
+    if (queue_head == NULL) {
         return NULL;
     } else {
-        int *result = head->client_socket;
-        node_t *temp = head;
-        head = head->next;
-        if (head == NULL) {
-            tail = NULL;
+        int *result = (*queue_head)->socket_descriptor;
+        node_t *temp = *queue_head;
+        *queue_head = (*queue_head)->next;
+        if (*queue_head == NULL) {
+            *queue_tail = NULL;
         }
         free(temp);
         return result;
     }
 }
 
+// Add new socket to the queue
+void enqueue_worker_connection(int *socket_descriptor) {
+    printf("QUEUE\n");
+    enqueue(&worker_queue_head, &worker_queue_tail, socket_descriptor);
+}
 
-void show_queue() {
-    node_t *temp = head;
-    printf("QUEUE: ");
-    while (temp != NULL) {
-        printf("%d->", *temp->client_socket);
-        temp = temp->next;
-    }
-    printf("NULL\n");
+
+// Get first node in the queue, return NULL if empty
+int* dequeue_worker_connection() {
+    printf("DEQUEUE\n");
+    return dequeue(&worker_queue_head, &worker_queue_tail);
 }

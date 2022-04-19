@@ -5,53 +5,58 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t condition_var = PTHREAD_COND_INITIALIZER;
 
 
-_Noreturn void * handle_connection(void* p_client_socket) {
-    int client_socket = *((int*)p_client_socket);
-    free(p_client_socket);
-    printf("Got a connection from %d\n", client_socket);
+_Noreturn void * handle_worker_connection(void* p_worker_socket) {
+    int worker_socket = *((int*)p_worker_socket);
+    free(p_worker_socket);
+    printf("Got a connection from %d\n", worker_socket);
     char buffer[BUFFERSIZE];
     size_t bytes_read;
     size_t message_size;
+    char uuid[UUID_STR_LEN];
 
     while(true) {
         memset(&buffer, 0, BUFFERSIZE);
         bytes_read = 0;
         message_size = 0;
         // read the client's message
-        while((bytes_read = read(client_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
             message_size += bytes_read;
             if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
         }
-        check(bytes_read, "Receiving failed!");
+        if(strlen(buffer) == 0) {
+            // Bad message. Close connection
+            remove_from_list(uuid);
+            check((close(worker_socket)), "Worker socket closing failed!");
+            show_list();
+        }
+//        check(bytes_read, "Receiving failed!");
         buffer[message_size - 1] = 0; // null terminate
-
-        printf("Request (%lu)(%lu): [%s]\n", message_size, strlen(buffer), buffer);
-
         Metadata worker_metadata = str_to_metadata(buffer);
-        printf("METADATA RECEIVED\n");
-        print_metadata(worker_metadata);
-        printf("===========\n");
+        if(worker_metadata.resources.cpu < 10 && worker_metadata.resources.ram < 10 && worker_metadata.resources.gpu < 10) {
+            strcpy(uuid, worker_metadata.uuid);
 
-        pthread_mutex_lock(&mutex);
-        add_to_list(worker_metadata);
-        pthread_mutex_unlock(&mutex);
+            pthread_mutex_lock(&mutex);
+            add_to_list(worker_metadata);
+            pthread_mutex_unlock(&mutex);
 
-        show_list();
+            show_list();
+        }
 
         fflush(stdout);
     }
 }
 
 
-_Noreturn void * thread_function(void *arg) {
+_Noreturn void * worker_connection_thread_function(void *arg) {
     while (true) {
         pthread_mutex_lock(&mutex);
         pthread_cond_wait(&condition_var, &mutex);
-        int *pclient = dequeue();
+        int *pclient = dequeue_worker_connection();
         pthread_mutex_unlock(&mutex);
         if (pclient != NULL) {
             // There is a connection
-            handle_connection(pclient);
+            printf("CONNECTED\n");
+            handle_worker_connection(pclient);
         }
     }
 }
@@ -63,7 +68,7 @@ _Noreturn void master_server(void *arg) {
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
-        pthread_create(&thread_pool[i], NULL, thread_function, NULL);
+        pthread_create(&thread_pool[i], NULL, worker_connection_thread_function, NULL);
     }
 
     check(
@@ -74,7 +79,7 @@ _Noreturn void master_server(void *arg) {
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(SERVERPORT);
+    server_addr.sin_port = htons(WORKERS_PORT);
 
     check(
             bind(
@@ -111,8 +116,13 @@ _Noreturn void master_server(void *arg) {
 
         // Prevent race condition
         pthread_mutex_lock(&mutex);
-        enqueue(pclient);
+        enqueue_worker_connection(pclient);
         pthread_cond_signal(&condition_var);
         pthread_mutex_unlock(&mutex);
     }
+}
+
+
+void client_connections_server() {
+
 }

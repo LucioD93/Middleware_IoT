@@ -251,6 +251,30 @@ void add_to_list(Metadata worker_metadata) {
 }
 
 
+void remove_from_list(char* uuid) {
+    printf("Deleting %s\n", uuid);
+    metadata_node *current = metadata_head, *prev;
+
+    if(current != NULL && memcmp(current->worker_metadata->uuid, uuid, UUID_STR_LEN) == 0) {
+        metadata_head = current->next;
+        free(current);
+        return;
+    }
+
+    while (current != NULL && memcmp(current->worker_metadata->uuid, uuid, UUID_STR_LEN) == 0) {
+        prev = current;
+        current = current->next;
+    }
+
+    if(current != NULL) {
+        prev->next = current->next;
+        free(current);
+    }
+    printf("REMOVED %s\n", uuid);
+    show_list();
+}
+
+
 void print_metadata(Metadata metadata) {
     printf(
             "ID: [%s]\n   CPU %d - RAM %d - GPU %d - CPU Usage %d\n",

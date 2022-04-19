@@ -17,7 +17,7 @@ _Noreturn void worker_metadata_thread() {
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(SERVERPORT);
+    servaddr.sin_port = htons(WORKERS_PORT);
 
     check(
             (inet_pton(AF_INET, SERVERADDRESS, &servaddr.sin_addr)),
