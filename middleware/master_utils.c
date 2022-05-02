@@ -90,13 +90,13 @@ _Noreturn void * worker_connection_thread_function(void *arg) {
 _Noreturn void * client_connection_thread_function(void *arg) {
     while (true) {
         pthread_mutex_lock(&client_pool_mutex);
-        pthread_cond_wait(&worker_pool_condition_var, &client_pool_mutex);
+        pthread_cond_wait(&client_pool_condition_var, &client_pool_mutex);
         int *p_client = dequeue_client_connection();
         pthread_mutex_unlock(&client_pool_mutex);
         if (p_client != NULL) {
             // There is a connection
             printf("CLIENT CONNECTED\n");
-            handle_worker_connection(p_client);
+            handle_client_connection(p_client);
         }
     }
 }
@@ -136,7 +136,7 @@ _Noreturn void master_worker_server(void *arg) {
     );
 
     while(true) {
-        printf("Waiting connections...\n");
+        printf("Waiting worker connections...\n");
         // wait for and accept an incoming connection
         addr_size = sizeof(SA_IN);
 
@@ -152,7 +152,7 @@ _Noreturn void master_worker_server(void *arg) {
         // Queue connection so that a worker thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = client_socket;
-        printf("ACCEPTED\n");
+        printf("ACCEPTED WORKER CONNECTION\n");
 
         // Prevent race condition
         pthread_mutex_lock(&worker_pool_mutex);
@@ -163,7 +163,7 @@ _Noreturn void master_worker_server(void *arg) {
 }
 
 
-_Noreturn void client_connections_server() {
+_Noreturn void client_connections_server(void *args) {
     int server_socket, client_socket, addr_size;
     SA_IN server_addr, client_addr;
 
@@ -197,7 +197,7 @@ _Noreturn void client_connections_server() {
     );
 
     while(true) {
-        printf("Waiting connections...\n");
+        printf("Waiting client connections...\n");
         // wait for and accept an incoming connection
         addr_size = sizeof(SA_IN);
 
@@ -213,7 +213,7 @@ _Noreturn void client_connections_server() {
         // Queue connection so that a client thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = client_socket;
-        printf("ACCEPTED\n");
+        printf("ACCEPTED CLIENT CONNECTION\n");
 
         // Prevent race condition
         pthread_mutex_lock(&client_pool_mutex);
