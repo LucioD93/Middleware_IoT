@@ -21,6 +21,7 @@ typedef struct RQ {
 
 struct list_node {
     struct list_node* next;
+    int worker_socket;
     Metadata *worker_metadata;
 };
 typedef struct list_node metadata_node;
@@ -33,9 +34,11 @@ void generate_uuid(char *out);
 char *metadata_to_str(Metadata metadata);
 Metadata str_to_metadata(const char *str);
 
-void add_to_list(Metadata worker_metadata);
+void add_to_list(Metadata worker_metadata, int worker_socket);
 void print_metadata(Metadata metadata);
 void remove_from_list(char* uuid);
 void show_list();
+
+metadata_node *select_worker();
 
 #endif //MIDDLEWARE_METADATA_UTILS_H

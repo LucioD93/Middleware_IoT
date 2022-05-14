@@ -227,7 +227,7 @@ Metadata str_to_metadata(const char *str) {
 }
 
 
-void add_to_list(Metadata worker_metadata) {
+void add_to_list(Metadata worker_metadata, int worker_socket) {
     metadata_node *current = metadata_head;
     while (current != NULL) {
         if (memcmp(current->worker_metadata->uuid, worker_metadata.uuid, UUID_STR_LEN) == 0) {
@@ -245,6 +245,7 @@ void add_to_list(Metadata worker_metadata) {
     new_node->worker_metadata->resources.ram = worker_metadata.resources.ram;
     new_node->worker_metadata->resources.gpu = worker_metadata.resources.gpu;
     new_node->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
+    new_node->worker_socket = worker_socket;
     new_node->next = metadata_head;
     
     metadata_head = new_node;
@@ -272,6 +273,11 @@ void remove_from_list(char* uuid) {
     }
     printf("REMOVED %s\n", uuid);
     show_list();
+}
+
+
+metadata_node *select_worker() {
+    return metadata_head;
 }
 
 

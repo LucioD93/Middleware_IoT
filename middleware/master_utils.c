@@ -40,7 +40,7 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             strcpy(uuid, worker_metadata.uuid);
 
             pthread_mutex_lock(&worker_pool_mutex);
-            add_to_list(worker_metadata);
+            add_to_list(worker_metadata, worker_socket);
             pthread_mutex_unlock(&worker_pool_mutex);
 
             show_list();
@@ -57,7 +57,8 @@ void * handle_client_connection(void* p_client_socket) {
     printf("Got a connection from %d\n", client_socket);
     char buffer[BUFFERSIZE];
     size_t bytes_read;
-    size_t message_size;memset(&buffer, 0, BUFFERSIZE);
+    size_t message_size;
+    memset(&buffer, 0, BUFFERSIZE);
     bytes_read = 0;
     message_size = 0;
     // read the client's message
@@ -66,7 +67,35 @@ void * handle_client_connection(void* p_client_socket) {
         if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
     }
     buffer[message_size - 1] = 0; // null terminate
-    printf("Received from client \n|%s|\n", buffer);
+    printf("Received from client |%s|\n", buffer);
+
+    printf("Selecting worker\n");
+    metadata_node *selected_worker = select_worker();
+    print_metadata(*selected_worker->worker_metadata);
+
+    struct sockaddr_in client_addr;
+    int len;
+    len = sizeof(client_addr);
+    check(
+            getpeername(client_socket, (struct sockaddr *)&client_addr, &len),
+            "Failed getpeername"
+    );
+    printf("Client IP address: %s\n", inet_ntoa(client_addr.sin_addr));
+    printf("Client port      : %d\n", ntohs(client_addr.sin_port));
+
+    char client_connection[MAXLINE];
+    strcpy(client_connection, inet_ntoa(client_addr.sin_addr));
+    strcat(client_connection, " | ");
+    strcat(client_connection, buffer);
+    int sendbytes = sizeof (client_connection);
+
+    // Send client ip to worker socket
+    check(
+            (write(selected_worker->worker_socket, &client_connection, sendbytes) != sendbytes),
+            "Socket write failed"
+    );
+    printf("Finished sending |%s|%d| to worker\n", client_connection, sendbytes);
+
     close(client_socket);
     fflush(stdout);
 }
@@ -103,8 +132,8 @@ _Noreturn void * client_connection_thread_function(void *arg) {
 
 
 _Noreturn void master_worker_server(void *arg) {
-    int server_socket, client_socket, addr_size;
-    SA_IN server_addr, client_addr;
+    int server_socket, worker_socket, addr_size;
+    SA_IN server_addr, worker_addr;
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
@@ -141,9 +170,9 @@ _Noreturn void master_worker_server(void *arg) {
         addr_size = sizeof(SA_IN);
 
         check(
-                (client_socket = accept(
+                (worker_socket = accept(
                         server_socket,
-                        (SA*)&client_addr,
+                        (SA*)&worker_addr,
                         (socklen_t*) &addr_size
                 )),
                 "Accept failed!"
@@ -151,7 +180,7 @@ _Noreturn void master_worker_server(void *arg) {
 
         // Queue connection so that a worker thread can grab it
         int *pclient = malloc(sizeof(int));
-        *pclient = client_socket;
+        *pclient = worker_socket;
         printf("ACCEPTED WORKER CONNECTION\n");
 
         // Prevent race condition
