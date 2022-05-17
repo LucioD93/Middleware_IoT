@@ -1,0 +1,10 @@
+{
+    "makefile.extensionOutputFolder": "./.vscode",
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "/code",
+            "binaryPath": "/code/master",
+            "binaryArgs": []
+        }
+    ]
+}

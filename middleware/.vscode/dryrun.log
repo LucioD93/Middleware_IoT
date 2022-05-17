@@ -1,0 +1,10 @@
+make master --dry-run --keep-going --print-directory
+make: Entering directory '/code'
+gcc -I. -lpthread -luuid   -c -o master.o master.c
+gcc -I. -lpthread -luuid   -c -o metadata_utils.o metadata_utils.c
+gcc -I. -lpthread -luuid   -c -o queue.o queue.c
+ 
+gcc -I. -lpthread -luuid   -c -o threading_utils.o threading_utils.c
+gcc -o master master.o metadata_utils.o queue.o threading_utils.o -I. -lpthread -luuid
+make: Leaving directory '/code'
+ 
