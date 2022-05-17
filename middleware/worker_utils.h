@@ -12,6 +12,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <time.h>
 #include "constants.h"
 #include "metadata_utils.h"
 #include "threading_utils.h"

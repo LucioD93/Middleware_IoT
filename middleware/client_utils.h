@@ -15,6 +15,6 @@
 #include "constants.h"
 #include "threading_utils.h"
 
-_Noreturn void client_thread_thread();
+_Noreturn void client_function(int request_id);
 
 #endif //MIDDLEWARE_CLIENT_UTILS_H

@@ -1,35 +1,60 @@
 #include "client_utils.h"
 
-//typedef type name;
 
-//int send_request(int request_type, int ) {
-//    switch (request_type) {
-//        case 1:
-//            // image processing
-//        break;
-//        case 2:
-//            // web
-//        break;
-//        case 3:
-//            // word processing
-//        break;
-//        case 4:
-//            // sync processing
-//        break;
-//        case 5:
-//            // image locating
-//        break;
-//        case 6:
-//            // ip locating
-//        break;
-//        default:
-//            return -1;
-//        break;
+void *get_request_params(int request_type) {
+//    FILE *f = NULL;
+//    char filename[80] = "test.jpg";
+//    char buffer[MAXLINE];
+//    long file_bytes = 0;
+//    char c = '\0';
+//    int i = 0;
+//
+//    f = fopen(filename,"rb");
+//    if (f == NULL) {
+//        printf("\nError opening file.\n");
+//    } else {
+//        fseek(f,0,SEEK_END);
+//        file_bytes = ftell(f);
+//        fseek(f,0,SEEK_SET);
+//
 //    }
-//}
+//
+//    while (c != EOF){
+//        c = fgetc(f);
+//        buffer[i] = c;
+//        i++;
+//    }
+//
+//    printf("IMAGE SIZE %d\n", i);
+
+    switch (request_type) {
+        case 1:
+            // image processing
+        break;
+        case 2:
+            // web
+        break;
+        case 3:
+            // word processing
+        break;
+        case 4:
+            // sync processing
+        break;
+        case 5:
+            // image locating
+        break;
+        case 6:
+            // ip locating
+        break;
+        default:
+            return NULL;
+        break;
+    }
+}
+
+
 
 void *worker_connection_function(void *args) {
-    printf("HERE\n");
     int request_id = *((int*)args);
     printf("START %d\n", request_id);
     int server_socket, worker_socket, addr_size;
@@ -44,7 +69,7 @@ void *worker_connection_function(void *args) {
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(RESPONSES_PORT);
-    printf("BIND\n");
+
     check(
             bind(
                     server_socket,
@@ -73,9 +98,30 @@ void *worker_connection_function(void *args) {
     );
 
     printf("ACCEPTED WORKER CONNECTION\n");
+
+    // TODO: send args
+
+    char buffer[BUFFERSIZE];
+    size_t bytes_read;
+    size_t message_size;
+    memset(&buffer, 0, BUFFERSIZE);
+    bytes_read = 0;
+    message_size = 0;
+    // read master's message
+    printf("READING MASTERS MESSAGE\n");
+    while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        message_size += bytes_read;
+        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+    }
+    buffer[message_size - 1] = 0; // null terminate
+
+    printf("Got from worker: |%s|\n", buffer);
+
+    check(close(worker_socket), "Socket closing Failed");
 }
 
-_Noreturn void client_thread_thread(int request_id) {
+_Noreturn void client_function(int request_id) {
+    printf("Started client %d\n", request_id);
     int sockfd, sendbytes;
     SA_IN servaddr;
     char sendline[MAXLINE];
@@ -115,9 +161,6 @@ _Noreturn void client_thread_thread(int request_id) {
 
     printf("Socket closed\n");
 
-
-//    pthread_t worker_connection_thread;
-//    pthread_create(worker_connection_thread, );
     worker_connection_function(&request_id);
 
     exit(0);
