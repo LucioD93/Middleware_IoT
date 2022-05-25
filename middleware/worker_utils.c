@@ -24,6 +24,25 @@ void get_random_city(char *city) {
     strcpy(city, cities[choice]);
 }
 
+void receive_file_with_socket(char filename[MAXLINE], int socket) {
+    FILE * file;
+    file = fopen(filename, "wb");
+    char buffer[MAXLINE];
+    size_t bytes_read;
+    size_t message_size;
+    memset(&buffer, 0, BUFFERSIZE);
+    bytes_read = 0;
+    message_size = 0;
+    while((bytes_read = read(socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        message_size += bytes_read;
+        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+    }
+    buffer[message_size - 1] = 0; // null terminate
+    printf("AL final %s\n", buffer);
+    fputs(buffer, file);
+    fclose(file);
+}
+
 
 void *worker_client_thread(void *p_socket) {
     printf("THREAD STARTED\n");
@@ -75,7 +94,11 @@ void *worker_client_thread(void *p_socket) {
 
     printf("CONNECTED\n");
 
-    // TODO: get function params from client
+    if (request_id == 1 || request_id == 3 || request_id == 5) {
+        char filename[MAXLINE] = "got.txt";
+        printf("LLEGANDO\n");
+        receive_file_with_socket(filename, sockfd);
+    }
     // TODO: process function params from client
 
     if (request_id == 2) {

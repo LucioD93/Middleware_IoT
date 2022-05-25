@@ -52,10 +52,26 @@ void *get_request_params(int request_type) {
     }
 }
 
+void send_file_to_socket(char filename[BUFFERSIZE], int socket) {
+    char data[MAXLINE] = {0};
+    FILE *file;
+    printf("GOING to send %s\n", filename);
+    file = fopen(filename, "r");
+    while(fgets(data, MAXLINE, file) != NULL) {
+        printf("Sending %s\n", data);
+        check(
+            write(socket, data, sizeof(data)) == SOCKETERROR,
+            "ERROR: File sending failed!\n"
+        );
+    }
+    fclose(file);
+}
 
 
 void *worker_connection_function(void *args) {
-    int request_id = *((int*)args);
+    arguments thread_arguments = *((arguments *)args);
+    printf("THREAD %d - %s\n", thread_arguments.request_id, thread_arguments.filename);
+    int request_id = thread_arguments.request_id;
     printf("START %d\n", request_id);
     int server_socket, worker_socket, addr_size;
     SA_IN server_addr, worker_addr;
@@ -99,7 +115,11 @@ void *worker_connection_function(void *args) {
 
     printf("ACCEPTED WORKER CONNECTION\n");
 
-    // TODO: send args
+    if (request_id == 1 || request_id == 3 || request_id == 5) {
+        printf("ENTERED/n");
+        printf("GOING to send %s\n", thread_arguments.filename);
+        send_file_to_socket(thread_arguments.filename, worker_socket);
+    }
 
     char buffer[BUFFERSIZE];
     size_t bytes_read;
@@ -120,7 +140,8 @@ void *worker_connection_function(void *args) {
     check(close(worker_socket), "Socket closing Failed");
 }
 
-_Noreturn void client_function(int request_id) {
+_Noreturn void client_function(int request_id, char filename[MAXLINE]) {
+    printf("FUNCTION %s\n", filename);
     printf("Started client %d\n", request_id);
     int sockfd, sendbytes;
     SA_IN servaddr;
@@ -161,7 +182,11 @@ _Noreturn void client_function(int request_id) {
 
     printf("Socket closed\n");
 
-    worker_connection_function(&request_id);
+    arguments thread_args;
+    thread_args.request_id = request_id;
+    strcpy(thread_args.filename, filename);
+    printf("BEFORE %s\n", thread_args.filename);
+    worker_connection_function(&thread_args);
 
     exit(0);
 }

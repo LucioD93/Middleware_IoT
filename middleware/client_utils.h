@@ -12,9 +12,15 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <getopt.h>
 #include "constants.h"
 #include "threading_utils.h"
 
-_Noreturn void client_function(int request_id);
+typedef struct _args {
+    int request_id;
+    char filename[MAXLINE];
+} arguments;
+
+_Noreturn void client_function(int request_id, char filename[MAXLINE]);
 
 #endif //MIDDLEWARE_CLIENT_UTILS_H
