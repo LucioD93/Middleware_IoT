@@ -77,8 +77,8 @@ void * handle_client_connection(void* p_client_socket) {
     int len;
     len = sizeof(client_addr);
     check(
-            getpeername(client_socket, (struct sockaddr *)&client_addr, &len),
-            "Failed getpeername"
+        getpeername(client_socket, (struct sockaddr *)&client_addr, &len),
+        "Failed getpeername"
     );
     printf("Client IP address: %s\n", inet_ntoa(client_addr.sin_addr));
     printf("Client port      : %d\n", ntohs(client_addr.sin_port));
@@ -91,8 +91,8 @@ void * handle_client_connection(void* p_client_socket) {
 
     // Send client ip to worker socket
     check(
-            (write(selected_worker->worker_socket, &client_connection, sendbytes) != sendbytes),
-            "Socket write failed"
+        (write(selected_worker->worker_socket, &client_connection, sendbytes) != sendbytes),
+        "Socket write failed"
     );
     printf("Finished sending |%s|%d| to worker\n", client_connection, sendbytes);
 
@@ -151,17 +151,17 @@ _Noreturn void master_worker_server(void *arg) {
     server_addr.sin_port = htons(WORKERS_PORT);
 
     check(
-            bind(
-                    server_socket,
-                    (SA*) &server_addr,
-                    sizeof(server_addr)
-            ),
-            "Bind failed!"
+        bind(
+            server_socket,
+            (SA*) &server_addr,
+            sizeof(server_addr)
+        ),
+        "Bind failed!"
     );
 
     check(
-            listen(server_socket, SERVERBACKLOG),
-            "Listen failed!"
+        listen(server_socket, SERVERBACKLOG),
+        "Listen failed!"
     );
 
     while(true) {
@@ -170,12 +170,12 @@ _Noreturn void master_worker_server(void *arg) {
         addr_size = sizeof(SA_IN);
 
         check(
-                (worker_socket = accept(
-                        server_socket,
-                        (SA*)&worker_addr,
-                        (socklen_t*) &addr_size
-                )),
-                "Accept failed!"
+            (worker_socket = accept(
+                server_socket,
+                (SA*)&worker_addr,
+                (socklen_t*) &addr_size
+            )),
+            "Accept failed!"
         );
 
         // Queue connection so that a worker thread can grab it
@@ -202,8 +202,8 @@ _Noreturn void client_connections_server(void *args) {
     }
 
     check(
-            (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-            "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
+        "Failed to create socket!"
     );
 
     bzero(&server_addr, sizeof(server_addr));
@@ -212,17 +212,17 @@ _Noreturn void client_connections_server(void *args) {
     server_addr.sin_port = htons(CLIENTS_PORT);
 
     check(
-            bind(
-                    server_socket,
-                    (SA*) &server_addr,
-                    sizeof(server_addr)
-            ),
-            "Bind failed!"
+        bind(
+            server_socket,
+            (SA*) &server_addr,
+            sizeof(server_addr)
+        ),
+        "Bind failed!"
     );
 
     check(
-            listen(server_socket, SERVERBACKLOG),
-            "Listen failed!"
+        listen(server_socket, SERVERBACKLOG),
+        "Listen failed!"
     );
 
     while(true) {
@@ -231,12 +231,12 @@ _Noreturn void client_connections_server(void *args) {
         addr_size = sizeof(SA_IN);
 
         check(
-                (client_socket = accept(
-                        server_socket,
-                        (SA*)&client_addr,
-                        (socklen_t*) &addr_size
-                )),
-                "Accept failed!"
+            (client_socket = accept(
+                server_socket,
+                (SA*)&client_addr,
+                (socklen_t*) &addr_size
+            )),
+            "Accept failed!"
         );
 
         // Queue connection so that a client thread can grab it
