@@ -2,31 +2,6 @@
 
 
 void *get_request_params(int request_type) {
-//    FILE *f = NULL;
-//    char filename[80] = "test.jpg";
-//    char buffer[MAXLINE];
-//    long file_bytes = 0;
-//    char c = '\0';
-//    int i = 0;
-//
-//    f = fopen(filename,"rb");
-//    if (f == NULL) {
-//        printf("\nError opening file.\n");
-//    } else {
-//        fseek(f,0,SEEK_END);
-//        file_bytes = ftell(f);
-//        fseek(f,0,SEEK_SET);
-//
-//    }
-//
-//    while (c != EOF){
-//        c = fgetc(f);
-//        buffer[i] = c;
-//        i++;
-//    }
-//
-//    printf("IMAGE SIZE %d\n", i);
-
     switch (request_type) {
         case 1:
             // image processing
@@ -55,16 +30,19 @@ void *get_request_params(int request_type) {
 void send_file_to_socket(char filename[BUFFERSIZE], int socket) {
     char data[MAXLINE] = {0};
     FILE *file;
-    printf("GOING to send %s\n", filename);
     file = fopen(filename, "r");
     while(fgets(data, MAXLINE, file) != NULL) {
-        printf("Sending %s\n", data);
         check(
-            write(socket, data, sizeof(data)) == SOCKETERROR,
-            "ERROR: File sending failed!\n"
+        send(socket, data, sizeof(data), 0) == SOCKETERROR,
+        "ERROR: File sending failed!\n"
         );
     }
     fclose(file);
+    char final[] = "Finalizado";
+    check(
+        send(socket, final, 10, 0) == SOCKETERROR,
+        "ERROR: File sending failed!\n"
+    );
 }
 
 
