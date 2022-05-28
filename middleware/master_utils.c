@@ -33,7 +33,6 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             check((close(worker_socket)), "Worker socket closing failed!");
             show_list();
         }
-//        check(bytes_read, "Receiving failed!");
         buffer[message_size - 1] = 0; // null terminate
         Metadata worker_metadata = str_to_metadata(buffer);
         if(worker_metadata.resources.cpu < 10 && worker_metadata.resources.ram < 10 && worker_metadata.resources.gpu < 10) {

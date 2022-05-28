@@ -1,5 +1,9 @@
 #include "worker_utils.h"
 
+pthread_t master_thread_pool[THREAD_POOL_SIZE];
+pthread_mutex_t master_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t master_pool_condition_var = PTHREAD_COND_INITIALIZER;
+
 
 void get_date_time(char *currentTime) {
     time_t timer;
@@ -13,12 +17,12 @@ void get_date_time(char *currentTime) {
 
 void get_random_city(char *city) {
     const char * cities[] = {
-            "La Recoleta Museum",
-            "La Catedral Museum",
-            "Santa Teresa Museum",
-            "Santuarios Andinos Museum",
-            "Archaeology Museum UNSA",
-            "Casa de la Cultura"
+        "La Recoleta Museum",
+        "La Catedral Museum",
+        "Santa Teresa Museum",
+        "Santuarios Andinos Museum",
+        "Archaeology Museum UNSA",
+        "Casa de la Cultura"
     };
     int choice = rand() % 6;
     strcpy(city, cities[choice]);
@@ -32,7 +36,7 @@ void receive_file_with_socket(char filename[MAXLINE], int socket) {
     size_t message_size;
     memset(&buffer, 0, BUFFERSIZE);
     message_size = 0;
-    while(1) {
+    while(true) {
         bzero(buffer, MAXLINE);
         bytes_read = recv(socket, buffer, MAXLINE, 0);
         if (strcmp(buffer, "Finalizado") == 0) break;
@@ -43,28 +47,27 @@ void receive_file_with_socket(char filename[MAXLINE], int socket) {
 }
 
 
-void *worker_client_thread(void *p_socket) {
-    printf("THREAD STARTED\n");
-    int master_socket = *((int*)p_socket);
-    char buffer[BUFFERSIZE];
-    size_t bytes_read;
-    size_t message_size;
-    memset(&buffer, 0, BUFFERSIZE);
-    bytes_read = 0;
-    message_size = 0;
-    // read master's message
-    printf("READING MASTERS MESSAGE\n");
-    while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
-        message_size += bytes_read;
-        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
-    }
-    buffer[message_size - 1] = 0; // null terminate
-
-    char *client_ip = malloc(15);
-    int request_id;
-    sscanf(buffer, "%s | %d", client_ip, &request_id);
-    printf("Received from master %d - %s\n", request_id, client_ip);
-    fflush(stdout);
+void *handle_master_connection(int *master_socket, int request_id, char *client_ip) {
+//    int master_socket = *((int*)p_socket);
+//    char buffer[BUFFERSIZE];
+//    size_t bytes_read;
+//    size_t message_size;
+//    memset(&buffer, 0, BUFFERSIZE);
+//    bytes_read = 0;
+//    message_size = 0;
+//    // read master's message
+//    printf("READING MASTERS MESSAGE\n");
+//    while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+//        message_size += bytes_read;
+//        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+//    }
+//    buffer[message_size - 1] = 0; // null terminate
+//
+//    char *client_ip = malloc(15);
+//    int request_id;
+//    sscanf(buffer, "%s | %d", client_ip, &request_id);
+//    printf("Received from master %d - %s\n", request_id, client_ip);
+//    fflush(stdout);
 
     // Connect to client socket
     int sockfd, sendbytes;
@@ -73,8 +76,8 @@ void *worker_client_thread(void *p_socket) {
     char *metadata_str;
 
     check(
-            (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
-            "Client socket creation failed"
+        (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+        "Client socket creation failed"
     );
 
     bzero(&servaddr, sizeof(servaddr));
@@ -82,13 +85,13 @@ void *worker_client_thread(void *p_socket) {
     servaddr.sin_port = htons(RESPONSES_PORT);
 
     check(
-            (inet_pton(AF_INET, client_ip, &servaddr.sin_addr)),
-            "Server address translation failed"
+        (inet_pton(AF_INET, client_ip, &servaddr.sin_addr)),
+        "Server address translation failed"
     );
 
     check(
-            (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-            "Connection failed"
+        (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
+        "Connection failed"
     );
 
     printf("CONNECTED\n");
@@ -109,13 +112,75 @@ void *worker_client_thread(void *p_socket) {
 
     sendbytes = sizeof(sendline);
     check(
-            (write(sockfd, &sendline, sendbytes) != sendbytes),
-            "Socket write failed"
+        (write(sockfd, &sendline, sendbytes) != sendbytes),
+        "Socket write failed"
     );
 
     check(close(sockfd), "Socket closing Failed");
 }
 
+
+_Noreturn void * master_connection_thread_function(void *arg) {
+    while (true) {
+        pthread_mutex_lock(&master_pool_mutex);
+        pthread_cond_wait(&master_pool_condition_var, &master_pool_mutex);
+//        int *p_client = dequeue_master_connection();
+        node_t result = dequeue_master_connection();
+        pthread_mutex_unlock(&master_pool_mutex);
+        if (result.socket_descriptor != NULL) {
+            // There is a connection
+            printf("CLIENT CONNECTED\n");
+            handle_master_connection(result.socket_descriptor, result.connection->request_id, result.connection->client_ip);
+        }
+    }
+}
+
+_Noreturn void master_worker_server(void *p_socket) {
+    int server_socket, worker_socket, addr_size;
+    SA_IN server_addr, worker_addr;
+
+    // Create threads to handle connections
+    for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+        pthread_create(&master_thread_pool[i], NULL, master_connection_thread_function, NULL);
+    }
+
+    int master_socket = *((int*)p_socket);
+    char buffer[BUFFERSIZE];
+    size_t bytes_read;
+    size_t message_size;
+
+
+    while(true) {
+
+        memset(&buffer, 0, BUFFERSIZE);
+        bytes_read = 0;
+        message_size = 0;
+        // read master's message
+        printf("READING MASTERS MESSAGE\n");
+        while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+            message_size += bytes_read;
+            if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+        }
+        buffer[message_size - 1] = 0; // null terminate
+
+        char *client_ip = malloc(15);
+        int request_id;
+        sscanf(buffer, "%s | %d", client_ip, &request_id);
+        printf("Received from master %d - %s\n", request_id, client_ip);
+        fflush(stdout);
+
+        // Queue connection so that a worker thread can grab it
+        int *p_client = malloc(sizeof(int));
+        *p_client = worker_socket;
+        printf("ACCEPTED MASTER CONNECTION\n");
+
+        // Prevent race condition
+        pthread_mutex_lock(&master_pool_mutex);
+        enqueue_master_connection(p_client, request_id, client_ip);
+        pthread_cond_signal(&master_pool_condition_var);
+        pthread_mutex_unlock(&master_pool_mutex);
+    }
+}
 
 
 _Noreturn void worker_metadata_thread() {
@@ -129,8 +194,8 @@ _Noreturn void worker_metadata_thread() {
     char *metadata_str;
 
     check(
-            (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
-            "Client socket creation failed"
+        (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+        "Client socket creation failed"
     );
 
     bzero(&servaddr, sizeof(servaddr));
@@ -138,20 +203,19 @@ _Noreturn void worker_metadata_thread() {
     servaddr.sin_port = htons(WORKERS_PORT);
 
     check(
-            (inet_pton(AF_INET, MASTERSERVERADDRESS, &servaddr.sin_addr)),
-            "Server address translation failed"
+        (inet_pton(AF_INET, MASTERSERVERADDRESS, &servaddr.sin_addr)),
+        "Server address translation failed"
     );
 
     check(
-            (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-            "Connection failed"
+        (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
+        "Connection failed"
     );
 
     printf("CONNECTED\n");
 
     pthread_t worker_connections_thread;
-    pthread_create(&worker_connections_thread, NULL, (void *(*)(void *)) worker_client_thread, &sockfd);
-
+    pthread_create(&worker_connections_thread, NULL, (void *(*)(void *)) master_worker_server, &sockfd);
 
     while(true) {
         worker_metadata.resources.cpu_usage = get_cpu_usage();
@@ -163,16 +227,11 @@ _Noreturn void worker_metadata_thread() {
         printf("SENDING:[%d][%s]\n", sendbytes, sendline);
 
         check(
-                (write(sockfd, &sendline, sendbytes) != sendbytes),
-                "Socket write failed"
+            (write(sockfd, &sendline, sendbytes) != sendbytes),
+            "Socket write failed"
         );
         sleep(WORKERSYNCTIMER);
     }
-
-    check(close(sockfd), "Socket closing Failed");
-
-    printf("Socket closed\n");
-    exit(0);
 
 }
 
