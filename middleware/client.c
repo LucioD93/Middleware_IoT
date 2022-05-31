@@ -18,13 +18,11 @@ bool isValidIpAddress(char *ipAddress) {
 
 int main(int argc, char *argv[]) {
     int option, request_type;
-    char filename[MAXLINE] = "test.txt";
+    char filename[MAX_LINE] = "test.txt";
     char master_server_address[16] = "127.0.0.1";
     while((option = getopt(argc, argv, "r:a:")) != -1) {
-        printf("OPTION -%d\n", option);
         switch(option){
             case 'r': // Request type
-                printf("Given r Option: %s\n", optarg);
                 request_type = atoi(optarg);
                 break;
             case 'a': // Master server address
@@ -48,6 +46,5 @@ int main(int argc, char *argv[]) {
         printf("Invalid IP address for master server\n");
         exit(1);
     }
-    printf("MAIN %s\n", filename);
     client_function(request_type, filename);
 }

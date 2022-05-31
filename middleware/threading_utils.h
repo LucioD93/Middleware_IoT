@@ -15,9 +15,9 @@
 #include "queue.h"
 #include "metadata_utils.h"
 
-#define BUFFERSIZE 4096
-#define SOCKETERROR (-1)
-#define SERVERBACKLOG 10
+#define BUFFER_SIZE 4096
+#define SOCKET_ERROR (-1)
+#define SERVER_BACKLOG 10
 #define THREAD_POOL_SIZE 5
 
 int check(int exp, const char *msg);

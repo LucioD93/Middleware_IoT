@@ -12,20 +12,19 @@ pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
 _Noreturn void * handle_worker_connection(void* p_worker_socket) {
     int worker_socket = *((int*)p_worker_socket);
     free(p_worker_socket);
-    printf("Got a connection from %d\n", worker_socket);
-    char buffer[BUFFERSIZE];
+    char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
     char uuid[UUID_STR_LEN];
 
     while(true) {
-        memset(&buffer, 0, BUFFERSIZE);
+        memset(&buffer, 0, BUFFER_SIZE);
         bytes_read = 0;
         message_size = 0;
         // read the worker's message
         while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
             message_size += bytes_read;
-            if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+            if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
         if(strlen(buffer) == 0) {
             // Bad message. Close connection
@@ -53,20 +52,18 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
 void * handle_client_connection(void* p_client_socket) {
     int client_socket = *((int*)p_client_socket);
     free(p_client_socket);
-    printf("Got a connection from %d\n", client_socket);
-    char buffer[BUFFERSIZE];
+    char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
-    memset(&buffer, 0, BUFFERSIZE);
+    memset(&buffer, 0, BUFFER_SIZE);
     bytes_read = 0;
     message_size = 0;
     // read the client's message
     while((bytes_read = read(client_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
         message_size += bytes_read;
-        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+        if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
     }
     buffer[message_size - 1] = 0; // null terminate
-    printf("Received from client |%s|\n", buffer);
 
     printf("Selecting worker\n");
     metadata_node *selected_worker = select_worker();
@@ -79,10 +76,8 @@ void * handle_client_connection(void* p_client_socket) {
         getpeername(client_socket, (struct sockaddr *)&client_addr, &len),
         "Failed getpeername"
     );
-    printf("Client IP address: %s\n", inet_ntoa(client_addr.sin_addr));
-    printf("Client port      : %d\n", ntohs(client_addr.sin_port));
 
-    char client_connection[MAXLINE];
+    char client_connection[MAX_LINE];
     strcpy(client_connection, inet_ntoa(client_addr.sin_addr));
     strcat(client_connection, " | ");
     strcat(client_connection, buffer);
@@ -93,7 +88,6 @@ void * handle_client_connection(void* p_client_socket) {
         (write(selected_worker->worker_socket, &client_connection, sendbytes) != sendbytes),
         "Socket write failed"
     );
-    printf("Finished sending |%s|%d| to worker\n", client_connection, sendbytes);
 
     close(client_socket);
     fflush(stdout);
@@ -108,7 +102,6 @@ _Noreturn void * worker_connection_thread_function(void *arg) {
         pthread_mutex_unlock(&worker_pool_mutex);
         if (p_worker != NULL) {
             // There is a connection
-            printf("WORKER CONNECTED\n");
             handle_worker_connection(p_worker);
         }
     }
@@ -123,7 +116,6 @@ _Noreturn void * client_connection_thread_function(void *arg) {
         pthread_mutex_unlock(&client_pool_mutex);
         if (p_client != NULL) {
             // There is a connection
-            printf("CLIENT CONNECTED\n");
             handle_client_connection(p_client);
         }
     }
@@ -159,7 +151,7 @@ _Noreturn void master_worker_server(void *arg) {
     );
 
     check(
-        listen(server_socket, SERVERBACKLOG),
+        listen(server_socket, SERVER_BACKLOG),
         "Listen failed!"
     );
 
@@ -180,7 +172,7 @@ _Noreturn void master_worker_server(void *arg) {
         // Queue connection so that a worker thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = worker_socket;
-        printf("ACCEPTED WORKER CONNECTION\n");
+        printf("Accepted worker connection\n");
 
         // Prevent race condition
         pthread_mutex_lock(&worker_pool_mutex);
@@ -220,7 +212,7 @@ _Noreturn void client_connections_server(void *args) {
     );
 
     check(
-        listen(server_socket, SERVERBACKLOG),
+        listen(server_socket, SERVER_BACKLOG),
         "Listen failed!"
     );
 
@@ -241,7 +233,7 @@ _Noreturn void client_connections_server(void *args) {
         // Queue connection so that a client thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = client_socket;
-        printf("ACCEPTED CLIENT CONNECTION\n");
+        printf("Accepted client connection\n");
 
         // Prevent race condition
         pthread_mutex_lock(&client_pool_mutex);

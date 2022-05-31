@@ -28,17 +28,17 @@ void get_random_city(char *city) {
     strcpy(city, cities[choice]);
 }
 
-void receive_file_with_socket(char filename[MAXLINE], int socket) {
+void receive_file_with_socket(char filename[MAX_LINE], int socket) {
     FILE * file;
     file = fopen(filename, "w");
-    char buffer[MAXLINE];
+    char buffer[MAX_LINE];
     size_t bytes_read;
     size_t message_size;
-    memset(&buffer, 0, BUFFERSIZE);
+    memset(&buffer, 0, BUFFER_SIZE);
     message_size = 0;
     while(true) {
-        bzero(buffer, MAXLINE);
-        bytes_read = recv(socket, buffer, MAXLINE, 0);
+        bzero(buffer, MAX_LINE);
+        bytes_read = recv(socket, buffer, MAX_LINE, 0);
         if (strcmp(buffer, "Finalizado") == 0) break;
         message_size += bytes_read;
         fputs(buffer, file);
@@ -47,37 +47,20 @@ void receive_file_with_socket(char filename[MAXLINE], int socket) {
 }
 
 
-void *handle_master_connection(int *master_socket, int request_id, char *client_ip) {
-//    int master_socket = *((int*)p_socket);
-//    char buffer[BUFFERSIZE];
-//    size_t bytes_read;
-//    size_t message_size;
-//    memset(&buffer, 0, BUFFERSIZE);
-//    bytes_read = 0;
-//    message_size = 0;
-//    // read master's message
-//    printf("READING MASTERS MESSAGE\n");
-//    while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
-//        message_size += bytes_read;
-//        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
-//    }
-//    buffer[message_size - 1] = 0; // null terminate
-//
-//    char *client_ip = malloc(15);
-//    int request_id;
-//    sscanf(buffer, "%s | %d", client_ip, &request_id);
-//    printf("Received from master %d - %s\n", request_id, client_ip);
-//    fflush(stdout);
-
+void *handle_master_connection(int request_id, char *client_ip) {
     // Connect to client socket
     int sockfd, sendbytes;
     SA_IN servaddr;
-    char sendline[MAXLINE];
-    char *metadata_str;
+    char sendline[MAX_LINE];
 
     check(
         (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
         "Client socket creation failed"
+    );
+    int opt = 1;
+    check(
+        (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+        "setsockopt(SO_REUSEADDR) failed"
     );
 
     bzero(&servaddr, sizeof(servaddr));
@@ -94,19 +77,22 @@ void *handle_master_connection(int *master_socket, int request_id, char *client_
         "Connection failed"
     );
 
-    printf("CONNECTED\n");
-
-    if (request_id == 1 || request_id == 3 || request_id == 5) {
-        char filename[MAXLINE] = "got.txt";
+    if (
+        request_id == IMAGE_PROCESSING_REQUEST ||
+        request_id == WORD_PROCESSING_REQUEST ||
+        request_id == IMAGE_LOCATION_REQUEST
+    ) {
+        char filename[MAX_LINE] = "got.txt";
+        strcpy(sendline, "got.txt");
         receive_file_with_socket(filename, sockfd);
     }
     // TODO: process function params from client
 
-    if (request_id == 2) {
+    if (request_id == WEB_REQUEST) {
         strcpy(sendline, "http://www.rutas.com.pe");
-    } else if (request_id == 4) {
+    } else if (request_id == SYNCHRONIZATION_REQUEST) {
         get_date_time(sendline);
-    } else if (request_id == 5 || request_id == 6) {
+    } else if (request_id == IMAGE_LOCATION_REQUEST || request_id == IP_LOCATION_REQUEST) {
         get_random_city(sendline);
     }
 
@@ -124,20 +110,17 @@ _Noreturn void * master_connection_thread_function(void *arg) {
     while (true) {
         pthread_mutex_lock(&master_pool_mutex);
         pthread_cond_wait(&master_pool_condition_var, &master_pool_mutex);
-//        int *p_client = dequeue_master_connection();
         node_t result = dequeue_master_connection();
         pthread_mutex_unlock(&master_pool_mutex);
         if (result.socket_descriptor != NULL) {
             // There is a connection
-            printf("CLIENT CONNECTED\n");
-            handle_master_connection(result.socket_descriptor, result.connection->request_id, result.connection->client_ip);
+            handle_master_connection(result.connection->request_id, result.connection->client_ip);
         }
     }
 }
 
 _Noreturn void master_worker_server(void *p_socket) {
-    int server_socket, worker_socket, addr_size;
-    SA_IN server_addr, worker_addr;
+    int worker_socket;
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
@@ -145,34 +128,30 @@ _Noreturn void master_worker_server(void *p_socket) {
     }
 
     int master_socket = *((int*)p_socket);
-    char buffer[BUFFERSIZE];
+    char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
 
 
     while(true) {
-
-        memset(&buffer, 0, BUFFERSIZE);
-        bytes_read = 0;
+        memset(&buffer, 0, BUFFER_SIZE);
+        bytes_read;
         message_size = 0;
         // read master's message
-        printf("READING MASTERS MESSAGE\n");
         while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
             message_size += bytes_read;
-            if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+            if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
         buffer[message_size - 1] = 0; // null terminate
 
         char *client_ip = malloc(15);
         int request_id;
         sscanf(buffer, "%s | %d", client_ip, &request_id);
-        printf("Received from master %d - %s\n", request_id, client_ip);
         fflush(stdout);
 
         // Queue connection so that a worker thread can grab it
         int *p_client = malloc(sizeof(int));
         *p_client = worker_socket;
-        printf("ACCEPTED MASTER CONNECTION\n");
 
         // Prevent race condition
         pthread_mutex_lock(&master_pool_mutex);
@@ -190,7 +169,7 @@ _Noreturn void worker_metadata_thread() {
 
     int sockfd, sendbytes;
     SA_IN servaddr;
-    char sendline[MAXLINE];
+    char sendline[MAX_LINE];
     char *metadata_str;
 
     check(
@@ -203,7 +182,7 @@ _Noreturn void worker_metadata_thread() {
     servaddr.sin_port = htons(WORKERS_PORT);
 
     check(
-        (inet_pton(AF_INET, MASTERSERVERADDRESS, &servaddr.sin_addr)),
+        (inet_pton(AF_INET, MASTER_SERVER_ADDRESS, &servaddr.sin_addr)),
         "Server address translation failed"
     );
 
@@ -215,7 +194,12 @@ _Noreturn void worker_metadata_thread() {
     printf("CONNECTED\n");
 
     pthread_t worker_connections_thread;
-    pthread_create(&worker_connections_thread, NULL, (void *(*)(void *)) master_worker_server, &sockfd);
+    pthread_create(
+        &worker_connections_thread,
+        NULL,
+        (void *(*)(void *)) master_worker_server,
+        &sockfd
+    );
 
     while(true) {
         worker_metadata.resources.cpu_usage = get_cpu_usage();
@@ -230,7 +214,7 @@ _Noreturn void worker_metadata_thread() {
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
         );
-        sleep(WORKERSYNCTIMER);
+        sleep(WORKER_SYNC_TIMER);
     }
 
 }

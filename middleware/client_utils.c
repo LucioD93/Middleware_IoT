@@ -1,62 +1,38 @@
 #include "client_utils.h"
 
 
-void *get_request_params(int request_type) {
-    switch (request_type) {
-        case 1:
-            // image processing
-        break;
-        case 2:
-            // web
-        break;
-        case 3:
-            // word processing
-        break;
-        case 4:
-            // sync processing
-        break;
-        case 5:
-            // image locating
-        break;
-        case 6:
-            // ip locating
-        break;
-        default:
-            return NULL;
-        break;
-    }
-}
-
-void send_file_to_socket(char filename[BUFFERSIZE], int socket) {
-    char data[MAXLINE] = {0};
+void send_file_to_socket(char filename[BUFFER_SIZE], int socket) {
+    char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "r");
-    while(fgets(data, MAXLINE, file) != NULL) {
+    while(fgets(data, MAX_LINE, file) != NULL) {
         check(
-        send(socket, data, sizeof(data), 0) == SOCKETERROR,
+                send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
         );
     }
     fclose(file);
     char final[] = "Finalizado";
     check(
-        send(socket, final, 10, 0) == SOCKETERROR,
+            send(socket, final, 10, 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
     );
+    fflush(stdout);
 }
 
 
-void *worker_connection_function(void *args) {
-    arguments thread_arguments = *((arguments *)args);
-    printf("THREAD %d - %s\n", thread_arguments.request_id, thread_arguments.filename);
-    int request_id = thread_arguments.request_id;
-    printf("START %d\n", request_id);
+void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     int server_socket, worker_socket, addr_size;
     SA_IN server_addr, worker_addr;
 
     check(
-            (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-            "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
+        "Failed to create socket!"
+    );
+    int opt = 1;
+    check(
+            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+            "setsockopt(SO_REUSEADDR) failed"
     );
 
     bzero(&server_addr, sizeof(server_addr));
@@ -65,69 +41,65 @@ void *worker_connection_function(void *args) {
     server_addr.sin_port = htons(RESPONSES_PORT);
 
     check(
-            bind(
-                    server_socket,
-                    (SA*) &server_addr,
-                    sizeof(server_addr)
-            ),
-            "Bind failed!"
+        bind(
+            server_socket,
+            (SA*) &server_addr,
+            sizeof(server_addr)
+        ),
+        "Bind failed!"
     );
 
     check(
-            listen(server_socket, SERVERBACKLOG),
-            "Listen failed!"
+        listen(server_socket, SERVER_BACKLOG),
+        "Listen failed!"
     );
 
-    printf("Waiting worker connection...\n");
     // wait for and accept an incoming connection
     addr_size = sizeof(SA_IN);
 
     check(
-        (worker_socket = accept(
-                server_socket,
-                (SA*)&worker_addr,
-                (socklen_t*) &addr_size
-        )),
-        "Accept failed!"
+    (worker_socket = accept(
+        server_socket,
+        (SA*)&worker_addr,
+        (socklen_t*) &addr_size
+    )),
+    "Accept failed!"
     );
 
-    printf("ACCEPTED WORKER CONNECTION\n");
-
-    if (request_id == 1 || request_id == 3 || request_id == 5) {
-        printf("ENTERED/n");
-        printf("GOING to send %s\n", thread_arguments.filename);
-        send_file_to_socket(thread_arguments.filename, worker_socket);
+    if (
+        request_id == IMAGE_PROCESSING_REQUEST ||
+        request_id == WORD_PROCESSING_REQUEST ||
+        request_id == IMAGE_LOCATION_REQUEST
+    ) {
+        send_file_to_socket(filename, worker_socket);
     }
 
-    char buffer[BUFFERSIZE];
+    char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
-    memset(&buffer, 0, BUFFERSIZE);
-    bytes_read = 0;
+    memset(&buffer, 0, BUFFER_SIZE);
     message_size = 0;
     // read master's message
-    printf("READING MASTERS MESSAGE\n");
     while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
         message_size += bytes_read;
-        if(message_size > BUFFERSIZE - 1 || buffer[message_size - 1] == 0) break;
+        if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
     }
     buffer[message_size - 1] = 0; // null terminate
 
     printf("Got from worker: |%s|\n", buffer);
 
+    check(close(server_socket), "Socket closing Failed");
     check(close(worker_socket), "Socket closing Failed");
 }
 
-_Noreturn void client_function(int request_id, char filename[MAXLINE]) {
-    printf("FUNCTION %s\n", filename);
-    printf("Started client %d\n", request_id);
+_Noreturn void client_function(int request_id, char filename[MAX_LINE]) {
     int sockfd, sendbytes;
     SA_IN servaddr;
-    char sendline[MAXLINE];
+    char sendline[MAX_LINE];
 
     check(
-            (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
-            "Client socket creation failed"
+        (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+        "Client socket creation failed"
     );
 
     bzero(&servaddr, sizeof(servaddr));
@@ -135,36 +107,26 @@ _Noreturn void client_function(int request_id, char filename[MAXLINE]) {
     servaddr.sin_port = htons(CLIENTS_PORT);
 
     check(
-            (inet_pton(AF_INET, MASTERSERVERADDRESS, &servaddr.sin_addr)),
-            "Server address translation failed"
+        (inet_pton(AF_INET, MASTER_SERVER_ADDRESS, &servaddr.sin_addr)),
+        "Server address translation failed"
     );
 
     check(
-            (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-            "Connection failed"
+        (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
+        "Connection failed"
     );
-
-    printf("CONNECTED TO MASTER SERVER\n");
 
     sprintf(sendline,"%d", request_id);
     sendbytes = sizeof(sendline);
 
-    printf("SENDING:[%d][%s]\n", sendbytes, sendline);
-
     check(
-            (write(sockfd, &sendline, sendbytes) != sendbytes),
-            "Socket write failed"
+        (write(sockfd, &sendline, sendbytes) != sendbytes),
+        "Socket write failed"
     );
 
-    check(close(sockfd), "Socket closing Failed");
+    check(close(sockfd), "Closing socket to Master Failed");
+    worker_connection_function(request_id, filename);
 
-    printf("Socket closed\n");
-
-    arguments thread_args;
-    thread_args.request_id = request_id;
-    strcpy(thread_args.filename, filename);
-    printf("BEFORE %s\n", thread_args.filename);
-    worker_connection_function(&thread_args);
-
+    fflush(stdout);
     exit(0);
 }

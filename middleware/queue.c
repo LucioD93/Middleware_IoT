@@ -1,6 +1,5 @@
 #include "queue.h"
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 node_t* worker_queue_head = NULL;
@@ -16,7 +15,6 @@ node_t* master_queue_tail = NULL;
 void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor, client_connection *connection) {
     node_t *new_node = malloc(sizeof(node_t));
     new_node->socket_descriptor = socket_descriptor;
-    printf("CHECKING NULL %d\n", connection != NULL);
     if (connection != NULL) {
         new_node->connection = malloc(sizeof(client_connection));
         new_node->connection->request_id = connection->request_id;
@@ -94,6 +92,5 @@ node_t dequeue_master_connection() {
     strcpy(result.connection->client_ip, temp->connection->client_ip);
     free(temp->connection);
     free(temp);
-    printf("DEQUEUED %d - %s", result.connection->request_id, result.connection->client_ip);
     return result;
 }

@@ -16,11 +16,6 @@
 #include "constants.h"
 #include "threading_utils.h"
 
-typedef struct _args {
-    int request_id;
-    char filename[MAXLINE];
-} arguments;
-
-_Noreturn void client_function(int request_id, char filename[MAXLINE]);
+_Noreturn void client_function(int request_id, char filename[MAX_LINE]);
 
 #endif //MIDDLEWARE_CLIENT_UTILS_H

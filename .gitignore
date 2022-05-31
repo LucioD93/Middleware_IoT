@@ -10,6 +10,7 @@ cmake-build-debug-docker
 .idea
 middleware/got.txt
 middleware/test.txt
+middleware/master
 middleware/worker
 middleware/client
 .devcontainer/docker-compose.yml
