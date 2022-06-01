@@ -65,9 +65,10 @@ void * handle_client_connection(void* p_client_socket) {
     }
     buffer[message_size - 1] = 0; // null terminate
 
-    printf("Selecting worker\n");
-    metadata_node *selected_worker = select_worker();
-    print_metadata(*selected_worker->worker_metadata);
+    int request_id;
+    request_id = atoi(buffer);
+
+    metadata_node *selected_worker = select_worker(request_id);
 
     struct sockaddr_in client_addr;
     int len;
@@ -135,6 +136,11 @@ _Noreturn void master_worker_server(void *arg) {
             (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
             "Failed to create socket!"
     );
+    int opt = 1;
+    check(
+            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+            "setsockopt(SO_REUSEADDR) failed"
+    );
 
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -156,7 +162,6 @@ _Noreturn void master_worker_server(void *arg) {
     );
 
     while(true) {
-        printf("Waiting worker connections...\n");
         // wait for and accept an incoming connection
         addr_size = sizeof(SA_IN);
 
@@ -172,7 +177,6 @@ _Noreturn void master_worker_server(void *arg) {
         // Queue connection so that a worker thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = worker_socket;
-        printf("Accepted worker connection\n");
 
         // Prevent race condition
         pthread_mutex_lock(&worker_pool_mutex);
@@ -196,6 +200,11 @@ _Noreturn void client_connections_server(void *args) {
         (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
         "Failed to create socket!"
     );
+    int opt = 1;
+    check(
+            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+            "setsockopt(SO_REUSEADDR) failed"
+    );
 
     bzero(&server_addr, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
@@ -217,7 +226,6 @@ _Noreturn void client_connections_server(void *args) {
     );
 
     while(true) {
-        printf("Waiting client connections...\n");
         // wait for and accept an incoming connection
         addr_size = sizeof(SA_IN);
 
@@ -233,7 +241,6 @@ _Noreturn void client_connections_server(void *args) {
         // Queue connection so that a client thread can grab it
         int *pclient = malloc(sizeof(int));
         *pclient = client_socket;
-        printf("Accepted client connection\n");
 
         // Prevent race condition
         pthread_mutex_lock(&client_pool_mutex);

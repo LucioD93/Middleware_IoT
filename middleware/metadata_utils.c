@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -141,6 +142,7 @@ int get_cpu_usage() {
         exit(EXIT_FAILURE);
     sscanf(line, "%f", &load);
     printf("GOT LOAD %f\n", load);
+    fclose(fp);
     return (int)(load * 100);
 }
 
@@ -275,9 +277,71 @@ void remove_from_list(char* uuid) {
     show_list();
 }
 
+Resource resources_per_request_id(int request_id) {
+    Resource result;
+    switch (request_id) {
+        case IMAGE_PROCESSING_REQUEST:
+            result.cpu = 6;
+            result.ram = 5;
+            result.gpu = 6;
+            break;
+        case WEB_REQUEST:
+            result.cpu = 6;
+            result.ram = 4;
+            result.gpu = 4;
+            break;
+        case WORD_PROCESSING_REQUEST:
+            result.cpu = 6;
+            result.ram = 5;
+            result.gpu = 2;
+            break;
+        case SYNCHRONIZATION_REQUEST:
+            result.cpu = 1;
+            result.ram = 1;
+            result.gpu = 1;
+            break;
+        case IMAGE_LOCATION_REQUEST:
+            result.cpu = 6;
+            result.ram = 4;
+            result.gpu = 5;
+            break;
+        case IP_LOCATION_REQUEST:
+            result.cpu = 3;
+            result.ram = 2;
+            result.gpu = 1;
+            break;
+    }
+    return result;
+}
 
-metadata_node *select_worker() {
-    return metadata_head;
+
+float worker_apc_for_request_id(int request_id, Resource worker) {
+    Resource request_resource = resources_per_request_id(request_id);
+    float R = (
+        (worker.cpu - request_resource.cpu)*request_resource.cpu +
+        (worker.ram - request_resource.ram)*request_resource.ram +
+        (worker.gpu - request_resource.gpu)*request_resource.gpu
+    );
+    float normalized_r = ((R + 75)/113)*10;
+    return normalized_r;
+}
+
+bool can_resource_process_request(Resource worker) {
+    return worker.cpu_usage < 90;
+}
+
+
+metadata_node *select_worker(int request_id) {
+    metadata_node *current_node = metadata_head;
+    metadata_node *max_node = metadata_head;
+    float max_apc = worker_apc_for_request_id(request_id, metadata_head->worker_metadata->resources);
+    float current_apc;
+    while (current_node != NULL) {
+        current_apc = worker_apc_for_request_id(request_id, current_node->worker_metadata->resources);
+        if (current_apc > max_apc && can_resource_process_request(current_node->worker_metadata->resources)) max_node = current_node;
+        current_node = current_node->next;
+    }
+    return max_node;
 }
 
 

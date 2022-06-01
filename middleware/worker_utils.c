@@ -74,7 +74,7 @@ void *handle_master_connection(int request_id, char *client_ip) {
 
     check(
         (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-        "Connection failed"
+        "Connection to client failed"
     );
 
     if (
@@ -188,10 +188,8 @@ _Noreturn void worker_metadata_thread() {
 
     check(
         (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-        "Connection failed"
+        "Connection to Master failed"
     );
-
-    printf("CONNECTED\n");
 
     pthread_t worker_connections_thread;
     pthread_create(

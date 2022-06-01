@@ -2,6 +2,7 @@
 #define MIDDLEWARE_METADATA_UTILS_H
 
 #include <uuid/uuid.h>
+#include "constants.h"
 
 typedef struct RS {
     int cpu;
@@ -14,10 +15,6 @@ typedef struct MD {
     Resource resources;
     char uuid[UUID_STR_LEN];
 } Metadata;
-
-typedef struct RQ {
-    Resource request;
-} Request;
 
 struct list_node {
     struct list_node* next;
@@ -39,6 +36,6 @@ void print_metadata(Metadata metadata);
 void remove_from_list(char* uuid);
 void show_list();
 
-metadata_node *select_worker();
+metadata_node *select_worker(int request_id);
 
 #endif //MIDDLEWARE_METADATA_UTILS_H
