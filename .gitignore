@@ -9,6 +9,7 @@ cmake-build-debug-docker
 
 .idea
 middleware/*.txt
+middleware/*.jpg
 middleware/master
 middleware/worker
 middleware/client

@@ -97,7 +97,6 @@ void *handle_master_connection(int request_id, char *client_ip) {
         char filename[MAX_LINE] = "worker.jpg";
         strcpy(sendline, "worker.jpg");
         receive_image_file_over_socket(filename, sockfd);
-        printf("LLEGO\n");
     }
     // TODO: process function params from client
 

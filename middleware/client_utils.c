@@ -96,7 +96,6 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     ) {
         send_image_file_over_socket(filename, worker_socket);
     }
-    printf("HOLA\n");
 
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
