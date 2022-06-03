@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
     int option;
     char master_server_address[16] = "127.0.0.1";
     while((option = getopt(argc, argv, "r:a:")) != -1) {
-        switch(option){
+        switch(option) {
             case 'a': // Master server address
                 strcpy(master_server_address, optarg);
                 break;

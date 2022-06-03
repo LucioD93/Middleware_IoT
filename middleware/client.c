@@ -14,7 +14,6 @@ void print_usage() {
 
 int main(int argc, char *argv[]) {
     int option, request_type;
-    char filename[MAX_LINE] = "client.jpg";
     char master_server_address[16] = "127.0.0.1";
     while((option = getopt(argc, argv, "r:a:")) != -1) {
         switch(option){
@@ -41,6 +40,15 @@ int main(int argc, char *argv[]) {
     if (!isValidIpAddress(master_server_address)) {
         printf("Invalid IP address for master server\n");
         exit(1);
+    }
+    char filename[MAX_LINE];
+    switch(request_type) {
+        case WORD_PROCESSING_REQUEST:
+            strcpy(filename, "client.txt");
+            break;
+        case IMAGE_PROCESSING_REQUEST:
+            strcpy(filename, "client.jpg");
+            break;
     }
     client_function(request_type, filename, master_server_address);
 }

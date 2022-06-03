@@ -73,19 +73,27 @@ void *handle_master_connection(int request_id, char *client_ip) {
     }
     // TODO: process function params from client
 
-    if (request_id == WEB_REQUEST) {
-        strcpy(sendline, "http://www.rutas.com.pe");
-    } else if (request_id == SYNCHRONIZATION_REQUEST) {
-        get_date_time(sendline);
-    } else if (request_id == IMAGE_LOCATION_REQUEST || request_id == IP_LOCATION_REQUEST) {
-        get_random_city(sendline);
-    }
+    if (request_id == IMAGE_PROCESSING_REQUEST) {
+        char filename[MAX_LINE] = "worker.jpg";
+        send_image_file_over_socket(filename, sockfd);
+    } else if (request_id == WORD_PROCESSING_REQUEST) {
+        char filename[MAX_LINE] = "worker.txt";
+        send_text_file_over_socket(filename, sockfd);
+    } else {
+        if (request_id == WEB_REQUEST) {
+            strcpy(sendline, "http://www.rutas.com.pe");
+        } else if (request_id == SYNCHRONIZATION_REQUEST) {
+            get_date_time(sendline);
+        } else if (request_id == IMAGE_LOCATION_REQUEST || request_id == IP_LOCATION_REQUEST) {
+            get_random_city(sendline);
+        }
 
-    sendbytes = sizeof(sendline);
-    check(
-        (write(sockfd, &sendline, sendbytes) != sendbytes),
-        "Socket write failed"
-    );
+        sendbytes = sizeof(sendline);
+        check(
+                (write(sockfd, &sendline, sendbytes) != sendbytes),
+                "Socket write failed"
+        );
+    }
 
     check(close(sockfd), "Socket closing Failed");
 }

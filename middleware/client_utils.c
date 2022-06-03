@@ -46,6 +46,7 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     "Accept failed!"
     );
 
+    // This request types need to send an input file
     if (request_id == WORD_PROCESSING_REQUEST) {
         send_text_file_over_socket(filename, worker_socket);
     } else if (
@@ -55,19 +56,30 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
         send_image_file_over_socket(filename, worker_socket);
     }
 
-    char buffer[BUFFER_SIZE];
-    size_t bytes_read;
-    size_t message_size;
-    memset(&buffer, 0, BUFFER_SIZE);
-    message_size = 0;
-    // read master's message
-    while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
-        message_size += bytes_read;
-        if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
-    }
-    buffer[message_size - 1] = 0; // null terminate
+    if (request_id == WORD_PROCESSING_REQUEST) {
+        strcpy(filename, "client_output.txt");
+        receive_text_file_over_socket(filename, worker_socket);
+        printf("Received text file from worker. check %s\n", filename);
+    } else if (request_id == IMAGE_PROCESSING_REQUEST) {
+        strcpy(filename, "client_output.jpg");
+        receive_image_file_over_socket(filename, worker_socket);
+        printf("Received text file from image. check %s\n", filename);
+    } else {
+        char buffer[BUFFER_SIZE];
+        size_t bytes_read;
+        size_t message_size;
+        memset(&buffer, 0, BUFFER_SIZE);
+        message_size = 0;
 
-    printf("Got from worker: |%s|\n", buffer);
+        // read master's message
+        while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+            message_size += bytes_read;
+            if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
+        }
+        buffer[message_size - 1] = 0; // null terminate
+
+        printf("Got from worker: |%s|\n", buffer);
+    }
 
     check(close(server_socket), "Socket closing Failed");
     check(close(worker_socket), "Socket closing Failed");
