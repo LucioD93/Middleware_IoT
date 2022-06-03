@@ -14,7 +14,7 @@ void print_usage() {
 
 int main(int argc, char *argv[]) {
     int option, request_type;
-    char filename[MAX_LINE] = "test.txt";
+    char filename[MAX_LINE] = "client.jpg";
     char master_server_address[16] = "127.0.0.1";
     while((option = getopt(argc, argv, "r:a:")) != -1) {
         switch(option){

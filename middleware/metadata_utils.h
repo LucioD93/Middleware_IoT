@@ -14,6 +14,7 @@ typedef struct RS {
 typedef struct MD {
     Resource resources;
     char uuid[UUID_STR_LEN];
+    int assigned_requests;
 } Metadata;
 
 struct list_node {

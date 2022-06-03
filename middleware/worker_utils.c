@@ -32,16 +32,25 @@ void receive_file_with_socket(char filename[MAX_LINE], int socket) {
     FILE * file;
     file = fopen(filename, "w");
     char buffer[MAX_LINE];
-    size_t bytes_read;
-    size_t message_size;
     memset(&buffer, 0, BUFFER_SIZE);
-    message_size = 0;
     while(true) {
         bzero(buffer, MAX_LINE);
-        bytes_read = recv(socket, buffer, MAX_LINE, 0);
+        recv(socket, buffer, MAX_LINE, 0);
         if (strcmp(buffer, "Finalizado") == 0) break;
-        message_size += bytes_read;
         fputs(buffer, file);
+    }
+    fclose(file);
+}
+
+void receive_image_file_over_socket(char filename[MAX_LINE], int socket) {
+    FILE * file;
+    file = fopen(filename, "wb");
+    char buffer[MAX_LINE];
+    size_t bytes_read;
+    while((bytes_read = recv(socket, buffer, MAX_LINE, 0)) > 0) {
+        if (strcmp(buffer, "Finalizado") == 0) break;
+        fwrite(buffer, sizeof(char), MAX_LINE, file);
+        bzero(buffer, MAX_LINE);
     }
     fclose(file);
 }
@@ -77,14 +86,18 @@ void *handle_master_connection(int request_id, char *client_ip) {
         "Connection to client failed"
     );
 
-    if (
+    if (request_id == WORD_PROCESSING_REQUEST) {
+        char filename[MAX_LINE] = "worker.txt";
+        strcpy(sendline, filename);
+        receive_file_with_socket(filename, sockfd);
+    } else if (
         request_id == IMAGE_PROCESSING_REQUEST ||
-        request_id == WORD_PROCESSING_REQUEST ||
         request_id == IMAGE_LOCATION_REQUEST
     ) {
-        char filename[MAX_LINE] = "got.txt";
-        strcpy(sendline, "got.txt");
-        receive_file_with_socket(filename, sockfd);
+        char filename[MAX_LINE] = "worker.jpg";
+        strcpy(sendline, "worker.jpg");
+        receive_image_file_over_socket(filename, sockfd);
+        printf("LLEGO\n");
     }
     // TODO: process function params from client
 

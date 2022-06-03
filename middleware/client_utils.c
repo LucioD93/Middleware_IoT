@@ -1,20 +1,42 @@
 #include "client_utils.h"
 
 
-void send_file_to_socket(char filename[BUFFER_SIZE], int socket) {
+void send_text_file_over_socket(char filename[BUFFER_SIZE], int socket) {
     char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "r");
     while(fgets(data, MAX_LINE, file) != NULL) {
         check(
-                send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+        send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            "ERROR: File sending failed!\n"
+        );
+        bzero(data, MAX_LINE);
+    }
+    fclose(file);
+    char final[] = "Finalizado";
+    check(
+        send(socket, final, 10, 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
+    );
+    fflush(stdout);
+}
+
+
+void send_image_file_over_socket(char filename[BUFFER_SIZE], int socket) {
+    char data[MAX_LINE] = {0};
+    FILE *file;
+    file = fopen(filename, "rb");
+    while(!feof(file)) {
+        fread(data, sizeof(char), MAX_LINE, file);
+        check(
+            send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            "ERROR: File sending failed!\n"
         );
     }
     fclose(file);
     char final[] = "Finalizado";
     check(
-            send(socket, final, 10, 0) == SOCKET_ERROR,
+        send(socket, final, 10, 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
     );
     fflush(stdout);
@@ -66,13 +88,15 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     "Accept failed!"
     );
 
-    if (
+    if (request_id == WORD_PROCESSING_REQUEST) {
+        send_text_file_over_socket(filename, worker_socket);
+    } else if (
         request_id == IMAGE_PROCESSING_REQUEST ||
-        request_id == WORD_PROCESSING_REQUEST ||
         request_id == IMAGE_LOCATION_REQUEST
     ) {
-        send_file_to_socket(filename, worker_socket);
+        send_image_file_over_socket(filename, worker_socket);
     }
+    printf("HOLA\n");
 
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
