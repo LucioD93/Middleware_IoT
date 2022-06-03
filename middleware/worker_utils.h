@@ -13,11 +13,12 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <time.h>
+#include <getopt.h>
 #include "constants.h"
 #include "metadata_utils.h"
 #include "threading_utils.h"
 
 
-void worker();
+void worker(char master_server_address[16]);
 
 #endif //MIDDLEWARE_WORKER_UTILS_H

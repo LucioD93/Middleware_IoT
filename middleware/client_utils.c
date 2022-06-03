@@ -92,7 +92,11 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     check(close(worker_socket), "Socket closing Failed");
 }
 
-_Noreturn void client_function(int request_id, char filename[MAX_LINE]) {
+_Noreturn void client_function(
+    int request_id,
+    char filename[MAX_LINE],
+    char master_server_address[16]
+) {
     int sockfd, sendbytes;
     SA_IN servaddr;
     char sendline[MAX_LINE];
@@ -107,7 +111,7 @@ _Noreturn void client_function(int request_id, char filename[MAX_LINE]) {
     servaddr.sin_port = htons(CLIENTS_PORT);
 
     check(
-        (inet_pton(AF_INET, MASTER_SERVER_ADDRESS, &servaddr.sin_addr)),
+        (inet_pton(AF_INET, master_server_address, &servaddr.sin_addr)),
         "Server address translation failed"
     );
 

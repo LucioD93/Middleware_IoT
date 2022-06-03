@@ -16,6 +16,10 @@
 #include "constants.h"
 #include "threading_utils.h"
 
-_Noreturn void client_function(int request_id, char filename[MAX_LINE]);
+_Noreturn void client_function(
+    int request_id,
+    char filename[MAX_LINE],
+    char master_server_address[16]
+);
 
 #endif //MIDDLEWARE_CLIENT_UTILS_H

@@ -7,3 +7,10 @@ int check(int exp, const char *msg) {
     }
     return exp;
 }
+
+
+bool isValidIpAddress(char *ipAddress) {
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ipAddress, &(sa.sin_addr));
+    return result != 0;
+}

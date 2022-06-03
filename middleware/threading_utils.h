@@ -22,4 +22,6 @@
 
 int check(int exp, const char *msg);
 
+bool isValidIpAddress(char *ipAddress);
+
 #endif //MIDDLEWARE_THREADING_UTILS_H

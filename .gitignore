@@ -8,8 +8,7 @@ cmake-build-debug
 cmake-build-debug-docker
 
 .idea
-middleware/got.txt
-middleware/test.txt
+middleware/*.txt
 middleware/master
 middleware/worker
 middleware/client

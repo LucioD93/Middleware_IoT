@@ -162,7 +162,7 @@ _Noreturn void master_worker_server(void *p_socket) {
 }
 
 
-_Noreturn void worker_metadata_thread() {
+_Noreturn void worker_metadata_thread(char master_server_address[16]) {
     Metadata worker_metadata = create_worker_metadata();
     printf("WORKER UUID [%s]\n", worker_metadata.uuid);
     printf("CPU %d - RAM %d - GPU %d\n", worker_metadata.resources.cpu, worker_metadata.resources.ram, worker_metadata.resources.gpu);
@@ -182,7 +182,7 @@ _Noreturn void worker_metadata_thread() {
     servaddr.sin_port = htons(WORKERS_PORT);
 
     check(
-        (inet_pton(AF_INET, MASTER_SERVER_ADDRESS, &servaddr.sin_addr)),
+        (inet_pton(AF_INET, master_server_address, &servaddr.sin_addr)),
         "Server address translation failed"
     );
 
@@ -218,6 +218,6 @@ _Noreturn void worker_metadata_thread() {
 }
 
 
-void worker() {
-    worker_metadata_thread();
+void worker(char master_server_address[16]) {
+    worker_metadata_thread(master_server_address);
 }

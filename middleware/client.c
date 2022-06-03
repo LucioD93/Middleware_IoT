@@ -8,13 +8,9 @@ void print_usage() {
     printf("      4      Sincronizacion\n");
     printf("      5      Localizacion por imagen\n");
     printf("      6      Localizacion por direccion IP\n");
+    printf("-a [ip]    Direccion IP de servidor maestro\n");
 }
 
-bool isValidIpAddress(char *ipAddress) {
-    struct sockaddr_in sa;
-    int result = inet_pton(AF_INET, ipAddress, &(sa.sin_addr));
-    return result != 0;
-}
 
 int main(int argc, char *argv[]) {
     int option, request_type;
@@ -46,5 +42,5 @@ int main(int argc, char *argv[]) {
         printf("Invalid IP address for master server\n");
         exit(1);
     }
-    client_function(request_type, filename);
+    client_function(request_type, filename, master_server_address);
 }
