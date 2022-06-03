@@ -28,33 +28,6 @@ void get_random_city(char *city) {
     strcpy(city, cities[choice]);
 }
 
-void receive_file_with_socket(char filename[MAX_LINE], int socket) {
-    FILE * file;
-    file = fopen(filename, "w");
-    char buffer[MAX_LINE];
-    memset(&buffer, 0, BUFFER_SIZE);
-    while(true) {
-        bzero(buffer, MAX_LINE);
-        recv(socket, buffer, MAX_LINE, 0);
-        if (strcmp(buffer, "Finalizado") == 0) break;
-        fputs(buffer, file);
-    }
-    fclose(file);
-}
-
-void receive_image_file_over_socket(char filename[MAX_LINE], int socket) {
-    FILE * file;
-    file = fopen(filename, "wb");
-    char buffer[MAX_LINE];
-    size_t bytes_read;
-    while((bytes_read = recv(socket, buffer, MAX_LINE, 0)) > 0) {
-        if (strcmp(buffer, "Finalizado") == 0) break;
-        fwrite(buffer, sizeof(char), MAX_LINE, file);
-        bzero(buffer, MAX_LINE);
-    }
-    fclose(file);
-}
-
 
 void *handle_master_connection(int request_id, char *client_ip) {
     // Connect to client socket
@@ -89,7 +62,7 @@ void *handle_master_connection(int request_id, char *client_ip) {
     if (request_id == WORD_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.txt";
         strcpy(sendline, filename);
-        receive_file_with_socket(filename, sockfd);
+        receive_text_file_over_socket(filename, sockfd);
     } else if (
         request_id == IMAGE_PROCESSING_REQUEST ||
         request_id == IMAGE_LOCATION_REQUEST

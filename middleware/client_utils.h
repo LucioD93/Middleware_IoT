@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <getopt.h>
 #include "constants.h"
+#include "socket_utils.h"
 #include "threading_utils.h"
 
 _Noreturn void client_function(
