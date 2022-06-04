@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
             strcpy(filename, "client.txt");
             break;
         case IMAGE_PROCESSING_REQUEST:
+        case IMAGE_LOCATION_REQUEST:
             strcpy(filename, "client.jpg");
             break;
     }

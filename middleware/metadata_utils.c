@@ -1,7 +1,3 @@
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "metadata_utils.h"
 
 metadata_node* metadata_head = NULL;
@@ -146,6 +142,26 @@ int get_cpu_usage() {
 }
 
 
+int get_max_task_unbound(Resource server) {
+    float cpu = server.cpu * ALPHA;
+    float ram = server.cpu * BETA;
+    float gpu = server.cpu * GAMMA;
+
+    return round(pow(cpu + ram + gpu, 2));
+}
+
+
+int get_max_tasks(Resource server) {
+    Resource max_server = {10,10,10};
+
+    int max_value = get_max_task_unbound(max_server);
+
+    float value = max_value / THREAD_POOL_SIZE;
+
+    return round(get_max_task_unbound(server)/value) + 1;
+}
+
+
 Resource get_local_resources() {
 
     Resource local_resources;
@@ -157,6 +173,7 @@ Resource get_local_resources() {
 
     return local_resources;
 }
+
 
 void generate_uuid(char *out) {
     uuid_t uuid;
@@ -276,6 +293,7 @@ void remove_from_list(char* uuid) {
     show_list();
 }
 
+
 Resource resources_per_request_id(int request_id) {
     Resource result;
     switch (request_id) {
@@ -324,6 +342,7 @@ float worker_apc_for_request_id(int request_id, Resource worker) {
     float normalized_r = ((R + 75)/113)*10;
     return normalized_r;
 }
+
 
 bool can_resource_process_request(Resource worker) {
     return worker.cpu_usage < 90;

@@ -7,8 +7,9 @@
 #define RESPONSES_PORT 8995
 #define MAX_LINE 4096
 #define MASTER_SERVER_ADDRESS "127.0.0.1"
-#define WORKER_SYNC_TIMER 10
+#define WORKER_SYNC_TIMER 30
 
+#define THREAD_POOL_SIZE 5
 
 // Requests types
 #define IMAGE_PROCESSING_REQUEST 1
@@ -23,6 +24,9 @@ typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
 // Algorithm constants
-static const float beta = 0.04;
+static const float ALPHA = 0.03;
+static const float BETA = 0.04;
+static const float GAMMA = 0.04;
+
 
 #endif //MIDDLEWARE_CONSTANTS_H

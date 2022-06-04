@@ -1,6 +1,11 @@
 #ifndef MIDDLEWARE_METADATA_UTILS_H
 #define MIDDLEWARE_METADATA_UTILS_H
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
 #include <uuid/uuid.h>
 #include "constants.h"
 
@@ -9,12 +14,13 @@ typedef struct RS {
     int ram;
     int gpu;
     int cpu_usage;
+    int max_tasks;
+    int assigned_tasks;
 } Resource;
 
 typedef struct MD {
     Resource resources;
     char uuid[UUID_STR_LEN];
-    int assigned_requests;
 } Metadata;
 
 struct list_node {
