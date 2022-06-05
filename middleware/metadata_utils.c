@@ -136,7 +136,6 @@ int get_cpu_usage() {
     if (read == -1)
         exit(EXIT_FAILURE);
     sscanf(line, "%f", &load);
-    printf("GOT LOAD %f\n", load);
     fclose(fp);
     return (int)(load * 100);
 }
