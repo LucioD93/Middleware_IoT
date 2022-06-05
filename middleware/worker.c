@@ -15,7 +15,7 @@ int main(int argc, char *argv[]) {
     sigaction(SIGINT, &action, NULL);
 
     int option;
-    char master_server_address[16] = "127.0.0.1";
+    char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
     while((option = getopt(argc, argv, "r:a:")) != -1) {
         switch(option) {
             case 'a': // Master server address

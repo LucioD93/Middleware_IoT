@@ -146,8 +146,6 @@ int get_max_task_unbound(Resource server) {
     float cpu = server.cpu * ALPHA;
     float ram = server.cpu * BETA;
     float gpu = server.cpu * GAMMA;
-
-    return round(pow(cpu + ram + gpu, 2));
 }
 
 
@@ -155,9 +153,7 @@ int get_max_tasks(Resource server) {
     Resource max_server = {10,10,10};
 
     int max_value = get_max_task_unbound(max_server);
-
     float value = max_value / THREAD_POOL_SIZE;
-
     return round(get_max_task_unbound(server)/value) + 1;
 }
 
@@ -170,6 +166,7 @@ Resource get_local_resources() {
     local_resources.ram = get_ram_score();
     local_resources.gpu = 3;
     local_resources.cpu_usage = get_cpu_usage();
+    local_resources.max_tasks = get_max_tasks(local_resources);
 
     return local_resources;
 }
@@ -202,10 +199,15 @@ char *metadata_to_str(Metadata metadata) {
     size_t len = 0;
     char *dummy = malloc(0);
     len = snprintf (
-            dummy,
-            len,
-            "%d,%d,%d,%d,%s\n",
-            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.resources.cpu_usage, metadata.uuid
+        dummy,
+        len,
+        "%d,%d,%d,%d,%d,%s\n",
+        metadata.resources.cpu,
+        metadata.resources.ram,
+        metadata.resources.gpu,
+        metadata.resources.cpu_usage,
+        metadata.resources.max_tasks,
+        metadata.uuid
     );
     free(dummy);
 
@@ -220,8 +222,13 @@ char *metadata_to_str(Metadata metadata) {
         snprintf (
             apstr,
             len + 1,
-            "%d,%d,%d,%d,%s\n",
-            metadata.resources.cpu, metadata.resources.ram, metadata.resources.gpu, metadata.resources.cpu_usage, metadata.uuid
+            "%d,%d,%d,%d,%d,%s\n",
+            metadata.resources.cpu,
+            metadata.resources.ram,
+            metadata.resources.gpu,
+            metadata.resources.cpu_usage,
+            metadata.resources.max_tasks,
+            metadata.uuid
         ) > len + 1
     )
     {
@@ -237,8 +244,13 @@ Metadata str_to_metadata(const char *str) {
     Metadata metadata;
     sscanf(
             str,
-            "%d,%d,%d,%d,%s\n",
-            &metadata.resources.cpu, &metadata.resources.ram, &metadata.resources.gpu, &metadata.resources.cpu_usage, metadata.uuid
+            "%d,%d,%d,%d,%d,%s\n",
+            &metadata.resources.cpu,
+            &metadata.resources.ram,
+            &metadata.resources.gpu,
+            &metadata.resources.cpu_usage,
+            &metadata.resources.max_tasks,
+            metadata.uuid
     );
 
     return metadata;
@@ -263,6 +275,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
     new_node->worker_metadata->resources.ram = worker_metadata.resources.ram;
     new_node->worker_metadata->resources.gpu = worker_metadata.resources.gpu;
     new_node->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
+    new_node->worker_metadata->resources.max_tasks = worker_metadata.resources.max_tasks;
     new_node->worker_socket = worker_socket;
     new_node->next = metadata_head;
     
@@ -365,12 +378,13 @@ metadata_node *select_worker(int request_id) {
 
 void print_metadata(Metadata metadata) {
     printf(
-            "ID: [%s]\n   CPU %d - RAM %d - GPU %d - CPU Usage %d\n",
-            metadata.uuid,
-            metadata.resources.cpu,
-            metadata.resources.ram,
-            metadata.resources.gpu,
-            metadata.resources.cpu_usage
+        "ID: [%s]\n   CPU %d - RAM %d - GPU %d - CPU Usage %d - Max Tasks %d\n",
+        metadata.uuid,
+        metadata.resources.cpu,
+        metadata.resources.ram,
+        metadata.resources.gpu,
+        metadata.resources.cpu_usage,
+        metadata.resources.max_tasks
     );
 }
 

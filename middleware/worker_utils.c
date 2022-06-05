@@ -158,7 +158,13 @@ _Noreturn void master_worker_server(void *p_socket) {
 _Noreturn void worker_metadata_thread(char master_server_address[16]) {
     Metadata worker_metadata = create_worker_metadata();
     printf("WORKER UUID [%s]\n", worker_metadata.uuid);
-    printf("CPU %d - RAM %d - GPU %d\n", worker_metadata.resources.cpu, worker_metadata.resources.ram, worker_metadata.resources.gpu);
+    printf(
+    "CPU %d - RAM %d - GPU %d - Max Tasks %d\n",
+        worker_metadata.resources.cpu,
+        worker_metadata.resources.ram,
+        worker_metadata.resources.gpu,
+        worker_metadata.resources.max_tasks
+    );
 
     int sockfd, sendbytes;
     SA_IN servaddr;
