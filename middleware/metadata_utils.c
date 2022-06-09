@@ -145,6 +145,8 @@ int get_max_task_unbound(Resource server) {
     float cpu = server.cpu * ALPHA;
     float ram = server.cpu * BETA;
     float gpu = server.cpu * GAMMA;
+
+    return round(pow(cpu + ram + gpu, 2));
 }
 
 
@@ -242,14 +244,14 @@ char *metadata_to_str(Metadata metadata) {
 Metadata str_to_metadata(const char *str) {
     Metadata metadata;
     sscanf(
-            str,
-            "%d,%d,%d,%d,%d,%s\n",
-            &metadata.resources.cpu,
-            &metadata.resources.ram,
-            &metadata.resources.gpu,
-            &metadata.resources.cpu_usage,
-            &metadata.resources.max_tasks,
-            metadata.uuid
+        str,
+        "%d,%d,%d,%d,%d,%s\n",
+        &metadata.resources.cpu,
+        &metadata.resources.ram,
+        &metadata.resources.gpu,
+        &metadata.resources.cpu_usage,
+        &metadata.resources.max_tasks,
+        metadata.uuid
     );
 
     return metadata;
@@ -357,7 +359,7 @@ float worker_apc_for_request_id(int request_id, Resource worker) {
 
 
 bool can_resource_process_request(Resource worker) {
-    return worker.cpu_usage < 90;
+    return worker.assigned_tasks < worker.max_tasks && worker.cpu_usage < 90;
 }
 
 
@@ -368,21 +370,25 @@ metadata_node *select_worker(int request_id) {
     float current_apc;
     while (current_node != NULL) {
         current_apc = worker_apc_for_request_id(request_id, current_node->worker_metadata->resources);
-        if (current_apc > max_apc && can_resource_process_request(current_node->worker_metadata->resources)) max_node = current_node;
+        if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata->resources)) {
+            max_node = current_node;
+        }
         current_node = current_node->next;
     }
+    max_node->worker_metadata->resources.assigned_tasks++;
     return max_node;
 }
 
 
 void print_metadata(Metadata metadata) {
     printf(
-        "ID: [%s]\n   CPU %d - RAM %d - GPU %d - CPU Usage %d - Max Tasks %d\n",
+        "ID: [%s]\n  CPU %d - RAM %d - GPU %d - CPU Usage %d - Tasks %d(%d)\n\n",
         metadata.uuid,
         metadata.resources.cpu,
         metadata.resources.ram,
         metadata.resources.gpu,
         metadata.resources.cpu_usage,
+        metadata.resources.assigned_tasks,
         metadata.resources.max_tasks
     );
 }
