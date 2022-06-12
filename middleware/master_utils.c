@@ -103,6 +103,7 @@ _Noreturn void * worker_connection_thread_function(void *arg) {
         pthread_mutex_unlock(&worker_pool_mutex);
         if (p_worker != NULL) {
             // There is a connection
+            printf("Got worker connection!\n");
             handle_worker_connection(p_worker);
         }
     }
@@ -133,8 +134,8 @@ _Noreturn void master_worker_server(void *arg) {
     }
 
     check(
-            (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-            "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
+        "Failed to create socket!"
     );
     int opt = 1;
     check(
@@ -160,6 +161,8 @@ _Noreturn void master_worker_server(void *arg) {
         listen(server_socket, SERVER_BACKLOG),
         "Listen failed!"
     );
+
+    printf("Waiting for worker connections ...\n");
 
     while(true) {
         // wait for and accept an incoming connection

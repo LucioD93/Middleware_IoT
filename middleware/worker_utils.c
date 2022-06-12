@@ -4,6 +4,8 @@ pthread_t master_thread_pool[THREAD_POOL_SIZE];
 pthread_mutex_t master_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t master_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
+pthread_mutex_t assigned_tasks_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 void get_date_time(char *currentTime) {
     time_t timer;
@@ -100,6 +102,7 @@ void *handle_master_connection(int request_id, char *client_ip) {
 
 
 _Noreturn void * master_connection_thread_function(void *arg) {
+    int *tasks_tracker = arg;
     while (true) {
         pthread_mutex_lock(&master_pool_mutex);
         pthread_cond_wait(&master_pool_condition_var, &master_pool_mutex);
@@ -107,28 +110,38 @@ _Noreturn void * master_connection_thread_function(void *arg) {
         pthread_mutex_unlock(&master_pool_mutex);
         if (result.socket_descriptor != NULL) {
             // There is a connection
+            pthread_mutex_lock(&assigned_tasks_mutex);
+            (*tasks_tracker)++;
+            pthread_mutex_unlock(&assigned_tasks_mutex);
             handle_master_connection(result.connection->request_id, result.connection->client_ip);
+            pthread_mutex_lock(&assigned_tasks_mutex);
+            (*tasks_tracker)--;
+            pthread_mutex_unlock(&assigned_tasks_mutex);
         }
     }
 }
 
-_Noreturn void master_worker_server(void *p_socket) {
+_Noreturn void master_worker_server(void *args) {
+    worker_args actual_args = *((worker_args*)args);
     int worker_socket;
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
-        pthread_create(&master_thread_pool[i], NULL, master_connection_thread_function, NULL);
+        pthread_create(
+            &master_thread_pool[i],
+            NULL,
+            master_connection_thread_function,
+            actual_args.tasks_tracker
+        );
     }
 
-    int master_socket = *((int*)p_socket);
+    int master_socket = *actual_args.socket;
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
 
-
     while(true) {
         memset(&buffer, 0, BUFFER_SIZE);
-        bytes_read;
         message_size = 0;
         // read master's message
         while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
@@ -151,15 +164,16 @@ _Noreturn void master_worker_server(void *p_socket) {
         enqueue_master_connection(p_client, request_id, client_ip);
         pthread_cond_signal(&master_pool_condition_var);
         pthread_mutex_unlock(&master_pool_mutex);
+
     }
 }
 
 
 _Noreturn void worker_metadata_thread(char master_server_address[16]) {
     Metadata worker_metadata = create_worker_metadata();
-    printf("WORKER UUID [%s]\n", worker_metadata.uuid);
     printf(
-    "CPU %d - RAM %d - GPU %d - Max Tasks %d\n",
+    "WORKER UUID [%s]\nCPU %d - RAM %d - GPU %d - Max Tasks %d\n",
+        worker_metadata.uuid,
         worker_metadata.resources.cpu,
         worker_metadata.resources.ram,
         worker_metadata.resources.gpu,
@@ -190,12 +204,18 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
         "Connection to Master failed"
     );
 
+    printf("Connected to master!\n");
+
     pthread_t worker_connections_thread;
+    worker_args *args = malloc(sizeof(worker_args));
+    args->socket = malloc(sizeof(int));
+    *args->socket = sockfd;
+    args->tasks_tracker = &worker_metadata.resources.assigned_tasks;
     pthread_create(
         &worker_connections_thread,
         NULL,
         (void *(*)(void *)) master_worker_server,
-        &sockfd
+        args
     );
 
     while(true) {
@@ -204,7 +224,7 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
         strcpy(sendline, metadata_str);
         sendbytes = sizeof(sendline);
         free(metadata_str);
-
+        printf("Sending metadata %s", sendline);
         check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"

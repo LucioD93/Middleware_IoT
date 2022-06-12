@@ -15,6 +15,7 @@ typedef struct RS {
     int gpu;
     int cpu_usage;
     int max_tasks;
+    int estimated_tasks;
     int assigned_tasks;
 } Resource;
 
