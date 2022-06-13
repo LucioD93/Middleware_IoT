@@ -16,7 +16,7 @@ int main(int argc, char *argv[]) {
     int option, request_type;
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
     while((option = getopt(argc, argv, "r:a:")) != -1) {
-        switch(option){
+        switch(option) {
             case 'r': // Request type
                 request_type = atoi(optarg);
                 break;

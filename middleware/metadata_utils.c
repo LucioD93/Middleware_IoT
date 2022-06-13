@@ -287,7 +287,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
     new_node->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
     new_node->worker_metadata->resources.max_tasks = worker_metadata.resources.max_tasks;
     new_node->worker_metadata->resources.assigned_tasks = worker_metadata.resources.assigned_tasks;
-    new_node->worker_metadata->resources.estimated_tasks = worker_metadata.resources.estimated_tasks;
+    new_node->worker_metadata->resources.estimated_tasks = 0;
     new_node->worker_socket = worker_socket;
     new_node->next = metadata_head;
     
@@ -374,6 +374,37 @@ bool can_resource_process_request(Resource worker) {
 }
 
 
+int estimate_time_per_request_id(int request_id) {
+    switch (request_id) {
+        case IMAGE_PROCESSING_REQUEST:
+            return 600;
+        case WEB_REQUEST:
+            return 10;
+        case WORD_PROCESSING_REQUEST:
+            return 100;
+        case SYNCHRONIZATION_REQUEST:
+            return 10;
+        case IMAGE_LOCATION_REQUEST:
+            return 300;
+        case IP_LOCATION_REQUEST:
+            return 30;
+    }
+    return 999;
+}
+
+void *sleeper_function(void *args) {
+    sleep_args actual_args = *((sleep_args *)args);
+    (*actual_args.tasks_tracker)++;
+
+    long seconds = 0;
+    long nanoseconds = estimate_time_per_request_id(actual_args.request_id) * 1000000L;
+    struct timespec reqDelay = {seconds, nanoseconds};
+    nanosleep(&reqDelay, (struct timespec *) NULL);
+
+    if(*actual_args.tasks_tracker > 0) (*actual_args.tasks_tracker)--;
+}
+
+
 metadata_node *select_worker(int request_id) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = metadata_head;
@@ -386,7 +417,18 @@ metadata_node *select_worker(int request_id) {
         }
         current_node = current_node->next;
     }
-    max_node->worker_metadata->resources.estimated_tasks++;
+
+    sleep_args *args = malloc(sizeof(sleep_args));
+    args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
+    args->request_id = request_id;
+    pthread_t sleep_thread;
+    pthread_create(
+        &sleep_thread,
+        NULL,
+        sleeper_function,
+        args
+    );
+
     return max_node;
 }
 

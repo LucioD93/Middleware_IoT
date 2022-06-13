@@ -130,7 +130,12 @@ _Noreturn void master_worker_server(void *arg) {
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
-        pthread_create(&workers_thread_pool[i], NULL, worker_connection_thread_function, NULL);
+        pthread_create(
+            &workers_thread_pool[i],
+            NULL,
+            worker_connection_thread_function,
+            NULL
+        );
     }
 
     check(
@@ -139,8 +144,8 @@ _Noreturn void master_worker_server(void *arg) {
     );
     int opt = 1;
     check(
-            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
-            "setsockopt(SO_REUSEADDR) failed"
+        (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+        "setsockopt(SO_REUSEADDR) failed"
     );
 
     bzero(&server_addr, sizeof(server_addr));

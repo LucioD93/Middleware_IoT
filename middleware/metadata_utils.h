@@ -7,6 +7,8 @@
 #include <string.h>
 #include <math.h>
 #include <uuid/uuid.h>
+#include <time.h>
+#include <pthread.h>
 #include "constants.h"
 
 typedef struct RS {
@@ -24,12 +26,16 @@ typedef struct MD {
     char uuid[UUID_STR_LEN];
 } Metadata;
 
-struct list_node {
+typedef struct list_node {
     struct list_node* next;
     int worker_socket;
     Metadata *worker_metadata;
-};
-typedef struct list_node metadata_node;
+} metadata_node;
+
+typedef struct s_sleep_args {
+    int *tasks_tracker;
+    int request_id;
+} sleep_args;
 
 int get_cpu_usage();
 

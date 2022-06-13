@@ -224,7 +224,7 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
         strcpy(sendline, metadata_str);
         sendbytes = sizeof(sendline);
         free(metadata_str);
-        printf("Sending metadata %s", sendline);
+
         check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
