@@ -19,10 +19,11 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
 
     while(true) {
         memset(&buffer, 0, BUFFER_SIZE);
-        bytes_read = 0;
         message_size = 0;
         // read the worker's message
-        while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        while(
+            (bytes_read = read(worker_socket, buffer + message_size,sizeof(buffer) - message_size)) > 0
+       ) {
             message_size += bytes_read;
             if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
@@ -34,7 +35,12 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
         }
         buffer[message_size - 1] = 0; // null terminate
         Metadata worker_metadata = str_to_metadata(buffer);
-        if(worker_metadata.resources.cpu < 10 && worker_metadata.resources.ram < 10 && worker_metadata.resources.gpu < 10) {
+
+        if(
+            worker_metadata.resources.cpu <= 10 &&
+            worker_metadata.resources.ram <= 10 &&
+            worker_metadata.resources.gpu <= 10
+        ) {
             strcpy(uuid, worker_metadata.uuid);
 
             pthread_mutex_lock(&worker_pool_mutex);

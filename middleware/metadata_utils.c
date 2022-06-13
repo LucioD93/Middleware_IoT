@@ -203,7 +203,7 @@ char *metadata_to_str(Metadata metadata) {
     len = snprintf (
         dummy,
         len,
-        "%d,%d,%d,%d,%d,%d,%d,%s\n",
+        "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
         metadata.resources.cpu,
         metadata.resources.ram,
         metadata.resources.gpu,
@@ -211,6 +211,7 @@ char *metadata_to_str(Metadata metadata) {
         metadata.resources.max_tasks,
         metadata.resources.assigned_tasks,
         metadata.resources.estimated_tasks,
+        milliseconds_since_epoch(),
         metadata.uuid
     );
     free(dummy);
@@ -226,7 +227,7 @@ char *metadata_to_str(Metadata metadata) {
         snprintf (
             apstr,
             len + 1,
-            "%d,%d,%d,%d,%d,%d,%d,%s\n",
+            "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
             metadata.resources.cpu,
             metadata.resources.ram,
             metadata.resources.gpu,
@@ -234,6 +235,7 @@ char *metadata_to_str(Metadata metadata) {
             metadata.resources.max_tasks,
             metadata.resources.assigned_tasks,
             metadata.resources.estimated_tasks,
+            milliseconds_since_epoch(),
             metadata.uuid
         ) > len + 1
     )
@@ -247,10 +249,11 @@ char *metadata_to_str(Metadata metadata) {
 
 
 Metadata str_to_metadata(const char *str) {
+    long long milliseconds_received;
     Metadata metadata;
     sscanf(
         str,
-        "%d,%d,%d,%d,%d,%d,%d,%s\n",
+        "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
         &metadata.resources.cpu,
         &metadata.resources.ram,
         &metadata.resources.gpu,
@@ -258,9 +261,11 @@ Metadata str_to_metadata(const char *str) {
         &metadata.resources.max_tasks,
         &metadata.resources.assigned_tasks,
         &metadata.resources.estimated_tasks,
+        &milliseconds_received,
         metadata.uuid
     );
 
+    metadata.resources.network_delay = milliseconds_since_epoch() - milliseconds_received;
     return metadata;
 }
 
@@ -269,7 +274,6 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
     metadata_node *current = metadata_head;
     while (current != NULL) {
         if (memcmp(current->worker_metadata->uuid, worker_metadata.uuid, UUID_STR_LEN) == 0) {
-            printf("FOUND REPETITION %s\n", current->worker_metadata->uuid);
             current->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
             current->worker_metadata->resources.assigned_tasks = worker_metadata.resources.assigned_tasks;
             current->worker_metadata->resources.estimated_tasks = worker_metadata.resources.assigned_tasks;
@@ -288,6 +292,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
     new_node->worker_metadata->resources.max_tasks = worker_metadata.resources.max_tasks;
     new_node->worker_metadata->resources.assigned_tasks = worker_metadata.resources.assigned_tasks;
     new_node->worker_metadata->resources.estimated_tasks = 0;
+    new_node->worker_metadata->resources.network_delay = worker_metadata.resources.network_delay;
     new_node->worker_socket = worker_socket;
     new_node->next = metadata_head;
     
@@ -435,12 +440,13 @@ metadata_node *select_worker(int request_id) {
 
 void print_metadata(Metadata metadata) {
     printf(
-        "ID: [%s]\n  CPU %d - RAM %d - GPU %d - CPU Usage %d - Tasks E: %d(A: %d)(M: %d)\n\n",
+        "ID: [%s]\n  CPU %d - RAM %d - GPU %d - CPU Usage %d - Delay %lld - Tasks E: %d(A: %d)(M: %d)\n\n",
         metadata.uuid,
         metadata.resources.cpu,
         metadata.resources.ram,
         metadata.resources.gpu,
         metadata.resources.cpu_usage,
+        metadata.resources.network_delay,
         metadata.resources.estimated_tasks,
         metadata.resources.assigned_tasks,
         metadata.resources.max_tasks
@@ -456,4 +462,11 @@ void show_list() {
         node = node->next;
     }
     printf("---------\n");
+}
+
+
+long long milliseconds_since_epoch() {
+    struct timeval te;
+    gettimeofday(&te, NULL); // get current time
+    return te.tv_sec*1000LL + te.tv_usec/1000;
 }

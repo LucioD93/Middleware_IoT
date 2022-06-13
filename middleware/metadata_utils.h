@@ -19,6 +19,7 @@ typedef struct RS {
     int max_tasks;
     int estimated_tasks;
     int assigned_tasks;
+    long long network_delay;
 } Resource;
 
 typedef struct MD {
@@ -51,5 +52,6 @@ void remove_from_list(char* uuid);
 void show_list();
 
 metadata_node *select_worker(int request_id);
+long long milliseconds_since_epoch();
 
 #endif //MIDDLEWARE_METADATA_UTILS_H

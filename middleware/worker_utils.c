@@ -222,9 +222,16 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
         worker_metadata.resources.cpu_usage = get_cpu_usage();
         metadata_str = metadata_to_str(worker_metadata);
         strcpy(sendline, metadata_str);
+
+        long long milliseconds = milliseconds_since_epoch();
+        char milliseconds_str[256];
+        sprintf(milliseconds_str, "%lld\n", milliseconds);
+        strcat(sendline, milliseconds_str);
+
         sendbytes = sizeof(sendline);
         free(metadata_str);
 
+        printf("SENDING: %s\n", sendline);
         check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
