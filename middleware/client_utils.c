@@ -1,33 +1,9 @@
 #include "client_utils.h"
 
 
-void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
-    int server_socket, worker_socket, addr_size;
-    SA_IN server_addr, worker_addr;
-
-    check(
-        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Failed to create socket!"
-    );
-    int opt = 1;
-    check(
-            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
-            "setsockopt(SO_REUSEADDR) failed"
-    );
-
-    bzero(&server_addr, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(RESPONSES_PORT);
-
-    check(
-        bind(
-            server_socket,
-            (SA*) &server_addr,
-            sizeof(server_addr)
-        ),
-        "Bind failed!"
-    );
+void *worker_connection_function(int request_id, char filename[MAX_LINE], int server_socket) {
+    int worker_socket, address_size;
+    SA_IN worker_address;
 
     check(
         listen(server_socket, SERVER_BACKLOG),
@@ -35,13 +11,13 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
     );
 
     // wait for and accept an incoming connection
-    addr_size = sizeof(SA_IN);
+    address_size = sizeof(SA_IN);
 
     check(
     (worker_socket = accept(
         server_socket,
-        (SA*)&worker_addr,
-        (socklen_t*) &addr_size
+        (SA*)&worker_address,
+        (socklen_t*) &address_size
     )),
     "Accept failed!"
     );
@@ -72,7 +48,9 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE]) {
         message_size = 0;
 
         // read master's message
-        while((bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        while(
+            (bytes_read = read(worker_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0
+        ) {
             message_size += bytes_read;
             if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
@@ -90,39 +68,80 @@ _Noreturn void client_function(
     char filename[MAX_LINE],
     char master_server_address[16]
 ) {
-    int sockfd, sendbytes;
-    SA_IN servaddr;
-    char sendline[MAX_LINE];
+    int master_socket, worker_socket, server_socket, bytes_to_send;
+    SA_IN client_address, server_address;
+    char line_to_send[MAX_LINE];
+
+    // Open worker socket first to get the port that will be used
+    check(
+        (worker_socket = socket(AF_INET, SOCK_STREAM, 0)),
+        "Client socket for worker creation failed"
+    );
+    int opt = 1;
+    check(
+    (
+            setsockopt(
+                worker_socket,
+                SOL_SOCKET,
+                SO_REUSEADDR | SO_REUSEPORT,
+                &opt, sizeof(opt)
+            )
+        ),
+        "Set socket option failed"
+    );
+
+    bzero(&server_address, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(0);
 
     check(
-        (sockfd = socket(AF_INET, SOCK_STREAM, 0)),
+        bind(
+            worker_socket,
+            (SA*) &server_address,
+            sizeof(server_address)
+        ),
+        "Bind failed!"
+    );
+
+    struct sockaddr_in sin;
+    int len = sizeof(sin);
+    check(
+        (getsockname(worker_socket, (struct sockaddr *)&sin, &len) == -1),
+        "Get socket port failed!"
+    );
+    int worker_port = ntohs(sin.sin_port);
+    printf("port number %d\n", worker_port);
+
+    check(
+        (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
         "Client socket creation failed"
     );
 
-    bzero(&servaddr, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(CLIENTS_PORT);
+    bzero(&client_address, sizeof(client_address));
+    client_address.sin_family = AF_INET;
+    client_address.sin_port = htons(CLIENTS_PORT);
 
     check(
-        (inet_pton(AF_INET, master_server_address, &servaddr.sin_addr)),
+        (inet_pton(AF_INET, master_server_address, &client_address.sin_addr)),
         "Server address translation failed"
     );
 
     check(
-        (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
+        (connect(master_socket, (SA *) &client_address, sizeof(client_address))),
         "Connection failed"
     );
 
-    sprintf(sendline,"%d", request_id);
-    sendbytes = sizeof(sendline);
+    sprintf(line_to_send, "%d-%d", request_id, worker_port);
+    bytes_to_send = sizeof(line_to_send);
 
     check(
-        (write(sockfd, &sendline, sendbytes) != sendbytes),
+        (write(master_socket, &line_to_send, bytes_to_send) != bytes_to_send),
         "Socket write failed"
     );
 
-    check(close(sockfd), "Closing socket to Master Failed");
-    worker_connection_function(request_id, filename);
+    check(close(master_socket), "Closing socket to Master Failed");
+    worker_connection_function(request_id, filename, worker_socket);
 
     fflush(stdout);
     exit(0);

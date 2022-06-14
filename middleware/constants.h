@@ -4,7 +4,6 @@
 // Networking constants
 #define WORKERS_PORT 8989
 #define CLIENTS_PORT 8991
-#define RESPONSES_PORT 8995
 #define MAX_LINE 4096
 #define DEFAULT_MASTER_SERVER_ADDRESS "127.0.0.1"
 #define WORKER_SYNC_TIMER 30

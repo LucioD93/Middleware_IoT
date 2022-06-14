@@ -71,8 +71,8 @@ void * handle_client_connection(void* p_client_socket) {
     }
     buffer[message_size - 1] = 0; // null terminate
 
-    int request_id;
-    request_id = atoi(buffer);
+    int request_id, client_port_for_worker;
+    sscanf(buffer,"%d-%d", &request_id, &client_port_for_worker);
 
     metadata_node *selected_worker = select_worker(request_id);
 

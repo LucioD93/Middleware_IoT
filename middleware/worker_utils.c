@@ -31,7 +31,7 @@ void get_random_city(char *city) {
 }
 
 
-void *handle_master_connection(int request_id, char *client_ip) {
+void *handle_master_connection(int request_id, char *client_ip, int client_port) {
     // Connect to client socket
     int sockfd, sendbytes;
     SA_IN servaddr;
@@ -49,7 +49,7 @@ void *handle_master_connection(int request_id, char *client_ip) {
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
-    servaddr.sin_port = htons(RESPONSES_PORT);
+    servaddr.sin_port = htons(client_port);
 
     check(
         (inet_pton(AF_INET, client_ip, &servaddr.sin_addr)),
@@ -113,7 +113,7 @@ _Noreturn void * master_connection_thread_function(void *arg) {
             pthread_mutex_lock(&assigned_tasks_mutex);
             (*tasks_tracker)++;
             pthread_mutex_unlock(&assigned_tasks_mutex);
-            handle_master_connection(result.connection->request_id, result.connection->client_ip);
+            handle_master_connection(result.connection->request_id, result.connection->client_ip, result.connection->client_port);
             pthread_mutex_lock(&assigned_tasks_mutex);
             (*tasks_tracker)--;
             pthread_mutex_unlock(&assigned_tasks_mutex);
@@ -151,8 +151,8 @@ _Noreturn void master_worker_server(void *args) {
         buffer[message_size - 1] = 0; // null terminate
 
         char *client_ip = malloc(15);
-        int request_id;
-        sscanf(buffer, "%s | %d", client_ip, &request_id);
+        int request_id, client_port;
+        sscanf(buffer, "%s | %d-%d", client_ip, &request_id, &client_port);
         fflush(stdout);
 
         // Queue connection so that a worker thread can grab it
@@ -161,7 +161,7 @@ _Noreturn void master_worker_server(void *args) {
 
         // Prevent race condition
         pthread_mutex_lock(&master_pool_mutex);
-        enqueue_master_connection(p_client, request_id, client_ip);
+        enqueue_master_connection(p_client, request_id, client_ip, client_port);
         pthread_cond_signal(&master_pool_condition_var);
         pthread_mutex_unlock(&master_pool_mutex);
 
