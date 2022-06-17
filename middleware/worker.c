@@ -18,16 +18,16 @@ int main(int argc, char *argv[]) {
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
     while((option = getopt(argc, argv, "r:a:")) != -1) {
         switch(option) {
-            case 'a': // Master server address
-                strcpy(master_server_address, optarg);
-                break;
-            case 'h':
-                print_usage();
-                exit(0);
-            default: //used for some unknown options
-                printf("unknown option: %c\n", optopt);
-                print_usage();
-                break;
+        case 'a': // Master server address
+            strcpy(master_server_address, optarg);
+            break;
+        case 'h':
+            print_usage();
+            exit(0);
+        default: //used for some unknown options
+            printf("unknown option: %c\n", optopt);
+            print_usage();
+            break;
         }
     }
 

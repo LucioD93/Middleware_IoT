@@ -14,12 +14,12 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE], int se
     address_size = sizeof(SA_IN);
 
     check(
-    (worker_socket = accept(
-        server_socket,
-        (SA*)&worker_address,
-        (socklen_t*) &address_size
-    )),
-    "Accept failed!"
+        (worker_socket = accept(
+             server_socket,
+             (SA*)&worker_address,
+             (socklen_t*) &address_size
+         )),
+        "Accept failed!"
     );
 
     // This request types need to send an input file
@@ -79,7 +79,7 @@ _Noreturn void client_function(
     );
     int opt = 1;
     check(
-    (
+        (
             setsockopt(
                 worker_socket,
                 SOL_SOCKET,

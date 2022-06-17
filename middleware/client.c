@@ -17,19 +17,19 @@ int main(int argc, char *argv[]) {
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
     while((option = getopt(argc, argv, "r:a:")) != -1) {
         switch(option) {
-            case 'r': // Request type
-                request_type = atoi(optarg);
-                break;
-            case 'a': // Master server address
-                strcpy(master_server_address, optarg);
-                break;
-            case 'h':
-                print_usage();
-                exit(0);
-            default: //used for some unknown options
-                printf("unknown option: %c\n", optopt);
-                print_usage();
-                break;
+        case 'r': // Request type
+            request_type = atoi(optarg);
+            break;
+        case 'a': // Master server address
+            strcpy(master_server_address, optarg);
+            break;
+        case 'h':
+            print_usage();
+            exit(0);
+        default: //used for some unknown options
+            printf("unknown option: %c\n", optopt);
+            print_usage();
+            break;
         }
     }
 
@@ -43,13 +43,13 @@ int main(int argc, char *argv[]) {
     }
     char filename[MAX_LINE];
     switch(request_type) {
-        case WORD_PROCESSING_REQUEST:
-            strcpy(filename, "client.txt");
-            break;
-        case IMAGE_PROCESSING_REQUEST:
-        case IMAGE_LOCATION_REQUEST:
-            strcpy(filename, "client.jpg");
-            break;
+    case WORD_PROCESSING_REQUEST:
+        strcpy(filename, "client.txt");
+        break;
+    case IMAGE_PROCESSING_REQUEST:
+    case IMAGE_LOCATION_REQUEST:
+        strcpy(filename, "client.jpg");
+        break;
     }
     client_function(request_type, filename, master_server_address);
 }

@@ -23,7 +23,7 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
         // read the worker's message
         while(
             (bytes_read = read(worker_socket, buffer + message_size,sizeof(buffer) - message_size)) > 0
-       ) {
+        ) {
             message_size += bytes_read;
             if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
@@ -181,10 +181,10 @@ _Noreturn void master_worker_server(void *arg) {
 
         check(
             (worker_socket = accept(
-                server_socket,
-                (SA*)&worker_addr,
-                (socklen_t*) &addr_size
-            )),
+                                 server_socket,
+                                 (SA*)&worker_addr,
+                                 (socklen_t*) &addr_size
+                             )),
             "Accept failed!"
         );
 
@@ -216,8 +216,8 @@ _Noreturn void client_connections_server(void *args) {
     );
     int opt = 1;
     check(
-            (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
-            "setsockopt(SO_REUSEADDR) failed"
+        (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+        "setsockopt(SO_REUSEADDR) failed"
     );
 
     bzero(&server_addr, sizeof(server_addr));
@@ -245,10 +245,10 @@ _Noreturn void client_connections_server(void *args) {
 
         check(
             (client_socket = accept(
-                server_socket,
-                (SA*)&client_addr,
-                (socklen_t*) &addr_size
-            )),
+                                 server_socket,
+                                 (SA*)&client_addr,
+                                 (socklen_t*) &addr_size
+                             )),
             "Accept failed!"
         );
 

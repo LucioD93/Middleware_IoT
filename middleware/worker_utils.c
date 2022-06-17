@@ -56,10 +56,13 @@ void *handle_master_connection(int request_id, char *client_ip, int client_port)
         "Server address translation failed"
     );
 
-    check(
-        (connect(sockfd, (SA *) &servaddr, sizeof(servaddr))),
-        "Connection to client failed"
-    );
+    int exp;
+    for (int i = 0; i < 3; ++i) {
+        exp = connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
+        if (exp != SOCKET_ERROR) break;
+        sleep(i);
+    }
+    check(exp,"Connection to client failed");
 
     if (request_id == WORD_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.txt";
@@ -92,8 +95,8 @@ void *handle_master_connection(int request_id, char *client_ip, int client_port)
 
         sendbytes = sizeof(sendline);
         check(
-                (write(sockfd, &sendline, sendbytes) != sendbytes),
-                "Socket write failed"
+            (write(sockfd, &sendline, sendbytes) != sendbytes),
+            "Socket write failed"
         );
     }
 
@@ -172,7 +175,7 @@ _Noreturn void master_worker_server(void *args) {
 _Noreturn void worker_metadata_thread(char master_server_address[16]) {
     Metadata worker_metadata = create_worker_metadata();
     printf(
-    "WORKER UUID [%s]\nCPU %d - RAM %d - GPU %d - Max Tasks %d\n",
+        "WORKER UUID [%s]\nCPU %d - RAM %d - GPU %d - Max Tasks %d\n",
         worker_metadata.uuid,
         worker_metadata.resources.cpu,
         worker_metadata.resources.ram,

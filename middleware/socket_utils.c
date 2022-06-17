@@ -6,16 +6,16 @@ void send_text_file_over_socket(char filename[BUFFER_SIZE], int socket) {
     file = fopen(filename, "r");
     while(fgets(data, MAX_LINE, file) != NULL) {
         check(
-                send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
-                "ERROR: File sending failed!\n"
+            send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            "ERROR: File sending failed!\n"
         );
         bzero(data, MAX_LINE);
     }
     fclose(file);
     char final[] = "Finalizado";
     check(
-            send(socket, final, 10, 0) == SOCKET_ERROR,
-            "ERROR: File sending failed!\n"
+        send(socket, final, 10, 0) == SOCKET_ERROR,
+        "ERROR: File sending failed!\n"
     );
     fflush(stdout);
 }
@@ -28,15 +28,15 @@ void send_image_file_over_socket(char filename[BUFFER_SIZE], int socket) {
     while(!feof(file)) {
         fread(data, sizeof(char), MAX_LINE, file);
         check(
-                send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
-                "ERROR: File sending failed!\n"
+            send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            "ERROR: File sending failed!\n"
         );
     }
     fclose(file);
     char final[] = "Finalizado";
     check(
-            send(socket, final, 10, 0) == SOCKET_ERROR,
-            "ERROR: File sending failed!\n"
+        send(socket, final, 10, 0) == SOCKET_ERROR,
+        "ERROR: File sending failed!\n"
     );
     fflush(stdout);
 }

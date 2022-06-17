@@ -200,20 +200,20 @@ char *metadata_to_str(Metadata metadata) {
     /* get length of string required to hold struct values */
     size_t len = 0;
     char *dummy = malloc(0);
-    len = snprintf (
-        dummy,
-        len,
-        "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
-        metadata.resources.cpu,
-        metadata.resources.ram,
-        metadata.resources.gpu,
-        metadata.resources.cpu_usage,
-        metadata.resources.max_tasks,
-        metadata.resources.assigned_tasks,
-        metadata.resources.estimated_tasks,
-        milliseconds_since_epoch(),
-        metadata.uuid
-    );
+    len = snprintf(
+              dummy,
+              len,
+              "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
+              metadata.resources.cpu,
+              metadata.resources.ram,
+              metadata.resources.gpu,
+              metadata.resources.cpu_usage,
+              metadata.resources.max_tasks,
+              metadata.resources.assigned_tasks,
+              metadata.resources.estimated_tasks,
+              milliseconds_since_epoch(),
+              metadata.uuid
+          );
     free(dummy);
 
     /* allocate/validate string to hold all values (+1 to null-terminate) */
@@ -282,7 +282,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
         current = current->next;
     }
     metadata_node *new_node = malloc(sizeof(metadata_node));
-    
+
     new_node->worker_metadata = malloc(sizeof(Metadata));
     strcpy(new_node->worker_metadata->uuid, worker_metadata.uuid);
     new_node->worker_metadata->resources.cpu = worker_metadata.resources.cpu;
@@ -295,7 +295,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
     new_node->worker_metadata->resources.network_delay = worker_metadata.resources.network_delay;
     new_node->worker_socket = worker_socket;
     new_node->next = metadata_head;
-    
+
     metadata_head = new_node;
 }
 
@@ -327,36 +327,36 @@ void remove_from_list(char* uuid) {
 Resource resources_per_request_id(int request_id) {
     Resource result;
     switch (request_id) {
-        case IMAGE_PROCESSING_REQUEST:
-            result.cpu = 6;
-            result.ram = 5;
-            result.gpu = 6;
-            break;
-        case WEB_REQUEST:
-            result.cpu = 6;
-            result.ram = 4;
-            result.gpu = 4;
-            break;
-        case WORD_PROCESSING_REQUEST:
-            result.cpu = 6;
-            result.ram = 5;
-            result.gpu = 2;
-            break;
-        case SYNCHRONIZATION_REQUEST:
-            result.cpu = 1;
-            result.ram = 1;
-            result.gpu = 1;
-            break;
-        case IMAGE_LOCATION_REQUEST:
-            result.cpu = 6;
-            result.ram = 4;
-            result.gpu = 5;
-            break;
-        case IP_LOCATION_REQUEST:
-            result.cpu = 3;
-            result.ram = 2;
-            result.gpu = 1;
-            break;
+    case IMAGE_PROCESSING_REQUEST:
+        result.cpu = 6;
+        result.ram = 5;
+        result.gpu = 6;
+        break;
+    case WEB_REQUEST:
+        result.cpu = 6;
+        result.ram = 4;
+        result.gpu = 4;
+        break;
+    case WORD_PROCESSING_REQUEST:
+        result.cpu = 6;
+        result.ram = 5;
+        result.gpu = 2;
+        break;
+    case SYNCHRONIZATION_REQUEST:
+        result.cpu = 1;
+        result.ram = 1;
+        result.gpu = 1;
+        break;
+    case IMAGE_LOCATION_REQUEST:
+        result.cpu = 6;
+        result.ram = 4;
+        result.gpu = 5;
+        break;
+    case IP_LOCATION_REQUEST:
+        result.cpu = 3;
+        result.ram = 2;
+        result.gpu = 1;
+        break;
     }
     return result;
 }
@@ -365,10 +365,10 @@ Resource resources_per_request_id(int request_id) {
 float worker_apc_for_request_id(int request_id, Resource worker) {
     Resource request_resource = resources_per_request_id(request_id);
     float R = (
-        (worker.cpu - request_resource.cpu)*request_resource.cpu +
-        (worker.ram - request_resource.ram)*request_resource.ram +
-        (worker.gpu - request_resource.gpu)*request_resource.gpu
-    );
+                  (worker.cpu - request_resource.cpu)*request_resource.cpu +
+                  (worker.ram - request_resource.ram)*request_resource.ram +
+                  (worker.gpu - request_resource.gpu)*request_resource.gpu
+              );
     float normalized_r = ((R + 75)/113)*10;
     return normalized_r;
 }
@@ -381,18 +381,18 @@ bool can_resource_process_request(Resource worker) {
 
 int estimate_time_per_request_id(int request_id) {
     switch (request_id) {
-        case IMAGE_PROCESSING_REQUEST:
-            return 600;
-        case WEB_REQUEST:
-            return 10;
-        case WORD_PROCESSING_REQUEST:
-            return 100;
-        case SYNCHRONIZATION_REQUEST:
-            return 10;
-        case IMAGE_LOCATION_REQUEST:
-            return 300;
-        case IP_LOCATION_REQUEST:
-            return 30;
+    case IMAGE_PROCESSING_REQUEST:
+        return 600;
+    case WEB_REQUEST:
+        return 10;
+    case WORD_PROCESSING_REQUEST:
+        return 100;
+    case SYNCHRONIZATION_REQUEST:
+        return 10;
+    case IMAGE_LOCATION_REQUEST:
+        return 300;
+    case IP_LOCATION_REQUEST:
+        return 30;
     }
     return 999;
 }
