@@ -18,7 +18,7 @@
 #include "threading_utils.h"
 
 _Noreturn void client_function(
-    int request_id,
+    int request_type,
     char filename[MAX_LINE],
     char master_server_address[16]
 );

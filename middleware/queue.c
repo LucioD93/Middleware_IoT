@@ -15,7 +15,7 @@ void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor, c
     new_node->socket_descriptor = socket_descriptor;
     if (connection != NULL) {
         new_node->connection = malloc(sizeof(client_connection));
-        new_node->connection->request_id = connection->request_id;
+        new_node->connection->request_type = connection->request_type;
         new_node->connection->client_port = connection->client_port;
         new_node->connection->client_ip = malloc(15);
         strcpy(new_node->connection->client_ip, connection->client_ip);
@@ -71,9 +71,9 @@ int* dequeue_client_connection() {
 
 
 // Add new socket to the queue
-void enqueue_master_connection(int *socket_descriptor, int request_id, char *client_ip, int client_port) {
+void enqueue_master_connection(int *socket_descriptor, int request_type, char *client_ip, int client_port) {
     client_connection *connection = malloc(sizeof(client_connection));
-    connection->request_id = request_id;
+    connection->request_type = request_type;
     connection->client_port = client_port;
     connection->client_ip = malloc(15);
     strcpy(connection->client_ip, client_ip);
@@ -87,7 +87,7 @@ node_t dequeue_master_connection() {
     node_t result;
     result.socket_descriptor = temp->socket_descriptor;
     result.connection = malloc(sizeof(client_connection));
-    result.connection->request_id = temp->connection->request_id;
+    result.connection->request_type = temp->connection->request_type;
     result.connection->client_port = temp->connection->client_port;
     result.connection->client_ip = malloc(15);
     strcpy(result.connection->client_ip, temp->connection->client_ip);

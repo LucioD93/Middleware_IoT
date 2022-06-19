@@ -143,8 +143,8 @@ int get_cpu_usage() {
 
 int get_max_task_unbound(Resource server) {
     float cpu = server.cpu * ALPHA;
-    float ram = server.cpu * BETA;
-    float gpu = server.cpu * GAMMA;
+    float ram = server.ram * BETA;
+    float gpu = server.gpu * GAMMA;
 
     return round(pow(cpu + ram + gpu, 2));
 }
@@ -324,9 +324,9 @@ void remove_from_list(char* uuid) {
 }
 
 
-Resource resources_per_request_id(int request_id) {
+Resource resources_for_request_type(int request_type) {
     Resource result;
-    switch (request_id) {
+    switch (request_type) {
     case IMAGE_PROCESSING_REQUEST:
         result.cpu = 6;
         result.ram = 5;
@@ -362,13 +362,13 @@ Resource resources_per_request_id(int request_id) {
 }
 
 
-float worker_apc_for_request_id(int request_id, Resource worker) {
-    Resource request_resource = resources_per_request_id(request_id);
+float worker_apc_for_request_type(int request_type, Resource worker) {
+    Resource request_resource = resources_for_request_type(request_type);
     float R = (
-                  (worker.cpu - request_resource.cpu)*request_resource.cpu +
-                  (worker.ram - request_resource.ram)*request_resource.ram +
-                  (worker.gpu - request_resource.gpu)*request_resource.gpu
-              );
+      (worker.cpu - request_resource.cpu)*request_resource.cpu +
+      (worker.ram - request_resource.ram)*request_resource.ram +
+      (worker.gpu - request_resource.gpu)*request_resource.gpu
+    );
     float normalized_r = ((R + 75)/113)*10;
     return normalized_r;
 }
@@ -379,8 +379,8 @@ bool can_resource_process_request(Resource worker) {
 }
 
 
-int estimate_time_per_request_id(int request_id) {
-    switch (request_id) {
+int estimate_time_for_request_type(int request_type) {
+    switch (request_type) {
     case IMAGE_PROCESSING_REQUEST:
         return 600;
     case WEB_REQUEST:
@@ -397,35 +397,42 @@ int estimate_time_per_request_id(int request_id) {
     return 999;
 }
 
+
+void sleep_for_milliseconds(long milliseconds) {
+    long nanoseconds = milliseconds * 1000000L;
+    struct timespec reqDelay = {0, nanoseconds};
+    nanosleep(&reqDelay, (struct timespec *) NULL);
+}
+
+
 void *sleeper_function(void *args) {
     sleep_args actual_args = *((sleep_args *)args);
     (*actual_args.tasks_tracker)++;
 
-    long seconds = 0;
-    long nanoseconds = estimate_time_per_request_id(actual_args.request_id) * 1000000L;
-    struct timespec reqDelay = {seconds, nanoseconds};
-    nanosleep(&reqDelay, (struct timespec *) NULL);
+    sleep_for_milliseconds(estimate_time_for_request_type(actual_args.request_type));
 
     if(*actual_args.tasks_tracker > 0) (*actual_args.tasks_tracker)--;
 }
 
 
-metadata_node *select_worker(int request_id) {
+metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
-    metadata_node *max_node = metadata_head;
-    float max_apc = worker_apc_for_request_id(request_id, metadata_head->worker_metadata->resources);
-    float current_apc;
+    metadata_node *max_node = NULL;
+    float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
+    float current_apc = max_apc;
     while (current_node != NULL) {
-        current_apc = worker_apc_for_request_id(request_id, current_node->worker_metadata->resources);
+        current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
         if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata->resources)) {
             max_node = current_node;
         }
         current_node = current_node->next;
     }
 
+    if (max_node == NULL) return NULL;
+
     sleep_args *args = malloc(sizeof(sleep_args));
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
-    args->request_id = request_id;
+    args->request_type = request_type;
     pthread_t sleep_thread;
     pthread_create(
         &sleep_thread,

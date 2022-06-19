@@ -31,7 +31,8 @@ void get_random_city(char *city) {
 }
 
 
-void *handle_master_connection(int request_id, char *client_ip, int client_port) {
+void *handle_master_connection(int request_type, char *client_ip, int client_port) {
+    printf("Serving request %d\n", request_type);
     // Connect to client socket
     int sockfd, sendbytes;
     SA_IN servaddr;
@@ -64,13 +65,13 @@ void *handle_master_connection(int request_id, char *client_ip, int client_port)
     }
     check(exp,"Connection to client failed");
 
-    if (request_id == WORD_PROCESSING_REQUEST) {
+    if (request_type == WORD_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.txt";
         strcpy(sendline, filename);
         receive_text_file_over_socket(filename, sockfd);
     } else if (
-        request_id == IMAGE_PROCESSING_REQUEST ||
-        request_id == IMAGE_LOCATION_REQUEST
+            request_type == IMAGE_PROCESSING_REQUEST ||
+            request_type == IMAGE_LOCATION_REQUEST
     ) {
         char filename[MAX_LINE] = "worker.jpg";
         strcpy(sendline, "worker.jpg");
@@ -78,18 +79,18 @@ void *handle_master_connection(int request_id, char *client_ip, int client_port)
     }
     // TODO: process function params from client
 
-    if (request_id == IMAGE_PROCESSING_REQUEST) {
+    if (request_type == IMAGE_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.jpg";
         send_image_file_over_socket(filename, sockfd);
-    } else if (request_id == WORD_PROCESSING_REQUEST) {
+    } else if (request_type == WORD_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.txt";
         send_text_file_over_socket(filename, sockfd);
     } else {
-        if (request_id == WEB_REQUEST) {
+        if (request_type == WEB_REQUEST) {
             strcpy(sendline, "http://www.rutas.com.pe");
-        } else if (request_id == SYNCHRONIZATION_REQUEST) {
+        } else if (request_type == SYNCHRONIZATION_REQUEST) {
             get_date_time(sendline);
-        } else if (request_id == IMAGE_LOCATION_REQUEST || request_id == IP_LOCATION_REQUEST) {
+        } else if (request_type == IMAGE_LOCATION_REQUEST || request_type == IP_LOCATION_REQUEST) {
             get_random_city(sendline);
         }
 
@@ -116,7 +117,7 @@ _Noreturn void * master_connection_thread_function(void *arg) {
             pthread_mutex_lock(&assigned_tasks_mutex);
             (*tasks_tracker)++;
             pthread_mutex_unlock(&assigned_tasks_mutex);
-            handle_master_connection(result.connection->request_id, result.connection->client_ip, result.connection->client_port);
+            handle_master_connection(result.connection->request_type, result.connection->client_ip, result.connection->client_port);
             pthread_mutex_lock(&assigned_tasks_mutex);
             (*tasks_tracker)--;
             pthread_mutex_unlock(&assigned_tasks_mutex);
@@ -154,8 +155,8 @@ _Noreturn void master_worker_server(void *args) {
         buffer[message_size - 1] = 0; // null terminate
 
         char *client_ip = malloc(15);
-        int request_id, client_port;
-        sscanf(buffer, "%s | %d-%d", client_ip, &request_id, &client_port);
+        int request_type, client_port;
+        sscanf(buffer, "%s | %d-%d", client_ip, &request_type, &client_port);
         fflush(stdout);
 
         // Queue connection so that a worker thread can grab it
@@ -164,7 +165,7 @@ _Noreturn void master_worker_server(void *args) {
 
         // Prevent race condition
         pthread_mutex_lock(&master_pool_mutex);
-        enqueue_master_connection(p_client, request_id, client_ip, client_port);
+        enqueue_master_connection(p_client, request_type, client_ip, client_port);
         pthread_cond_signal(&master_pool_condition_var);
         pthread_mutex_unlock(&master_pool_mutex);
 

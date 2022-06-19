@@ -1,7 +1,7 @@
 #include "client_utils.h"
 
 
-void *worker_connection_function(int request_id, char filename[MAX_LINE], int server_socket) {
+void *worker_connection_function(int request_type, char filename[MAX_LINE], int server_socket) {
     int worker_socket, address_size;
     SA_IN worker_address;
 
@@ -23,20 +23,20 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE], int se
     );
 
     // This request types need to send an input file
-    if (request_id == WORD_PROCESSING_REQUEST) {
+    if (request_type == WORD_PROCESSING_REQUEST) {
         send_text_file_over_socket(filename, worker_socket);
     } else if (
-        request_id == IMAGE_PROCESSING_REQUEST ||
-        request_id == IMAGE_LOCATION_REQUEST
+            request_type == IMAGE_PROCESSING_REQUEST ||
+            request_type == IMAGE_LOCATION_REQUEST
     ) {
         send_image_file_over_socket(filename, worker_socket);
     }
 
-    if (request_id == WORD_PROCESSING_REQUEST) {
+    if (request_type == WORD_PROCESSING_REQUEST) {
         strcpy(filename, "client_output.txt");
         receive_text_file_over_socket(filename, worker_socket);
         printf("Received text file from worker. check %s\n", filename);
-    } else if (request_id == IMAGE_PROCESSING_REQUEST) {
+    } else if (request_type == IMAGE_PROCESSING_REQUEST) {
         strcpy(filename, "client_output.jpg");
         receive_image_file_over_socket(filename, worker_socket);
         printf("Received text file from image. check %s\n", filename);
@@ -64,7 +64,7 @@ void *worker_connection_function(int request_id, char filename[MAX_LINE], int se
 }
 
 _Noreturn void client_function(
-    int request_id,
+    int request_type,
     char filename[MAX_LINE],
     char master_server_address[16]
 ) {
@@ -111,7 +111,6 @@ _Noreturn void client_function(
         "Get socket port failed!"
     );
     int worker_port = ntohs(sin.sin_port);
-    printf("port number %d\n", worker_port);
 
     check(
         (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
@@ -132,7 +131,7 @@ _Noreturn void client_function(
         "Connection failed"
     );
 
-    sprintf(line_to_send, "%d-%d", request_id, worker_port);
+    sprintf(line_to_send, "%d-%d", request_type, worker_port);
     bytes_to_send = sizeof(line_to_send);
 
     check(
@@ -141,7 +140,7 @@ _Noreturn void client_function(
     );
 
     check(close(master_socket), "Closing socket to Master Failed");
-    worker_connection_function(request_id, filename, worker_socket);
+    worker_connection_function(request_type, filename, worker_socket);
 
     fflush(stdout);
     exit(0);

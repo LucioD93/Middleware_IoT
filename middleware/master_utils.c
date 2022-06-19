@@ -71,21 +71,28 @@ void * handle_client_connection(void* p_client_socket) {
     }
     buffer[message_size - 1] = 0; // null terminate
 
-    int request_id, client_port_for_worker;
-    sscanf(buffer,"%d-%d", &request_id, &client_port_for_worker);
+    int request_type, client_port_for_worker;
+    sscanf(buffer, "%d-%d", &request_type, &client_port_for_worker);
 
-    metadata_node *selected_worker = select_worker(request_id);
+    metadata_node *selected_worker = NULL;
 
-    struct sockaddr_in client_addr;
+    while(true) {
+        selected_worker = select_worker(request_type);
+        if (selected_worker != NULL) break;
+        printf("Wait \n");
+        sleep_for_milliseconds(50);
+    }
+
+    struct sockaddr_in client_address;
     int len;
-    len = sizeof(client_addr);
+    len = sizeof(client_address);
     check(
-        getpeername(client_socket, (struct sockaddr *)&client_addr, &len),
+        getpeername(client_socket, (struct sockaddr *)&client_address, &len),
         "Failed getpeername"
     );
 
     char client_connection[MAX_LINE];
-    strcpy(client_connection, inet_ntoa(client_addr.sin_addr));
+    strcpy(client_connection, inet_ntoa(client_address.sin_addr));
     strcat(client_connection, " | ");
     strcat(client_connection, buffer);
     int sendbytes = sizeof (client_connection);

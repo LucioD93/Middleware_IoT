@@ -5,7 +5,7 @@
 #include <string.h>
 
 struct connection {
-    int request_id;
+    int request_type;
     char *client_ip;
     int client_port;
 };
@@ -24,7 +24,7 @@ int* dequeue_worker_connection();
 void enqueue_client_connection(int* socket_descriptor);
 int* dequeue_client_connection();
 
-void enqueue_master_connection(int* socket_descriptor, int request_id, char *client_ip, int client_port);
+void enqueue_master_connection(int* socket_descriptor, int request_type, char *client_ip, int client_port);
 node_t dequeue_master_connection();
 
 void show_queue();

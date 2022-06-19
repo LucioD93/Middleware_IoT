@@ -35,7 +35,7 @@ typedef struct list_node {
 
 typedef struct s_sleep_args {
     int *tasks_tracker;
-    int request_id;
+    int request_type;
 } sleep_args;
 
 int get_cpu_usage();
@@ -51,7 +51,9 @@ void print_metadata(Metadata metadata);
 void remove_from_list(char* uuid);
 void show_list();
 
-metadata_node *select_worker(int request_id);
+metadata_node *select_worker(int request_type);
 long long milliseconds_since_epoch();
+
+void sleep_for_milliseconds(long milliseconds);
 
 #endif //MIDDLEWARE_METADATA_UTILS_H
