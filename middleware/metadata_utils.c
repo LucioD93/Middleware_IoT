@@ -248,6 +248,11 @@ char *metadata_to_str(Metadata metadata) {
 }
 
 
+long long get_delay(long long end, long long start) {
+    return end - start;
+}
+
+
 Metadata str_to_metadata(const char *str) {
     long long milliseconds_received;
     Metadata metadata;
@@ -265,7 +270,7 @@ Metadata str_to_metadata(const char *str) {
         metadata.uuid
     );
 
-    metadata.resources.network_delay = milliseconds_since_epoch() - milliseconds_received;
+    metadata.resources.network_delay = get_delay(milliseconds_since_epoch(), milliseconds_received);
     return metadata;
 }
 
