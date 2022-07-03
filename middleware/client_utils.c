@@ -35,11 +35,11 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     if (request_type == WORD_PROCESSING_REQUEST) {
         strcpy(filename, "client_output.txt");
         receive_text_file_over_socket(filename, worker_socket);
-        printf("Received text file from worker. check %s\n", filename);
+        printf("Response from worker: |%s|\n", filename);
     } else if (request_type == IMAGE_PROCESSING_REQUEST) {
         strcpy(filename, "client_output.jpg");
         receive_image_file_over_socket(filename, worker_socket);
-        printf("Received image file from worker. check %s\n", filename);
+        printf("Response from worker: |%s|\n", filename);
     } else {
         char buffer[BUFFER_SIZE];
         size_t bytes_read;
@@ -56,7 +56,7 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
         }
         buffer[message_size - 1] = 0; // null terminate
 
-        printf("Got from worker: |%s|\n", buffer);
+        printf("Response from worker: |%s|\n", buffer);
     }
 
     check(close(server_socket), "Socket closing Failed");
@@ -112,7 +112,6 @@ _Noreturn void client_function(
     );
     int worker_port = ntohs(sin.sin_port);
 
-    printf("Using port %d\n", worker_port);
     check(
         (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
         "Client socket creation failed"

@@ -76,7 +76,7 @@ void * handle_client_connection(void* p_client_socket) {
     while(true) {
         selected_worker = select_worker(request_type);
         if (selected_worker != NULL) break;
-        printf("Wait \n");
+        printf("Waiting for available worker \n");
         sleep_for_milliseconds(50);
     }
     printf("Assigned %s to request %d\n", selected_worker->worker_metadata->uuid, request_type);
@@ -106,7 +106,7 @@ void * handle_client_connection(void* p_client_socket) {
 }
 
 
-_Noreturn void * worker_connection_thread_function(void *arg) {
+_Noreturn void * worker_connection_thread_function() {
     while (true) {
         pthread_mutex_lock(&worker_pool_mutex);
         pthread_cond_wait(&worker_pool_condition_var, &worker_pool_mutex);
@@ -120,7 +120,7 @@ _Noreturn void * worker_connection_thread_function(void *arg) {
 }
 
 
-_Noreturn void * client_connection_thread_function(void *arg) {
+_Noreturn void * client_connection_thread_function() {
     while (true) {
         pthread_mutex_lock(&client_pool_mutex);
         pthread_cond_wait(&client_pool_condition_var, &client_pool_mutex);
@@ -134,9 +134,9 @@ _Noreturn void * client_connection_thread_function(void *arg) {
 }
 
 
-_Noreturn void worker_connections_server(void *arg) {
-    int server_socket, worker_socket, addr_size;
-    SA_IN server_addr, worker_addr;
+_Noreturn void worker_connections_server() {
+    int server_socket, worker_socket, address_size;
+    SA_IN server_address, worker_address;
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
@@ -158,16 +158,16 @@ _Noreturn void worker_connections_server(void *arg) {
         "setsockopt(SO_REUSEADDR) failed"
     );
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(WORKERS_PORT);
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(WORKERS_PORT);
 
     check(
         bind(
             server_socket,
-            (SA*) &server_addr,
-            sizeof(server_addr)
+            (SA*) &server_address,
+            sizeof(server_address)
         ),
         "Bind failed!"
     );
@@ -181,37 +181,44 @@ _Noreturn void worker_connections_server(void *arg) {
 
     while(true) {
         // wait for and accept an incoming connection
-        addr_size = sizeof(SA_IN);
+        address_size = sizeof(SA_IN);
 
         check(
-            (worker_socket = accept(
-                                 server_socket,
-                                 (SA*)&worker_addr,
-                                 (socklen_t*) &addr_size
-                             )),
+            (
+                worker_socket = accept(
+                server_socket,
+                (SA*)&worker_address,
+                (socklen_t*) &address_size
+                )
+            ),
             "Accept failed!"
         );
 
         // Queue connection so that a worker thread can grab it
-        int *pclient = malloc(sizeof(int));
-        *pclient = worker_socket;
+        int *client_pointer = malloc(sizeof(int));
+        *client_pointer = worker_socket;
 
         // Prevent race condition
         pthread_mutex_lock(&worker_pool_mutex);
-        enqueue_worker_connection(pclient);
+        enqueue_worker_connection(client_pointer);
         pthread_cond_signal(&worker_pool_condition_var);
         pthread_mutex_unlock(&worker_pool_mutex);
     }
 }
 
 
-_Noreturn void client_connections_server(void *args) {
-    int server_socket, client_socket, addr_size;
-    SA_IN server_addr, client_addr;
+_Noreturn void client_connections_server() {
+    int server_socket, client_socket, address_size;
+    SA_IN server_address, client_address;
 
     // Create threads to handle connections
     for (int i = 0; i < THREAD_POOL_SIZE; i++) {
-        pthread_create(&clients_thread_pool[i], NULL, client_connection_thread_function, NULL);
+        pthread_create(
+            &clients_thread_pool[i],
+            NULL,
+            client_connection_thread_function,
+            NULL
+        );
     }
 
     check(
@@ -220,20 +227,28 @@ _Noreturn void client_connections_server(void *args) {
     );
     int opt = 1;
     check(
-        (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
+        (
+                setsockopt(
+                    server_socket,
+                    SOL_SOCKET,
+                    SO_REUSEADDR | SO_REUSEPORT,
+                    &opt,
+                    sizeof(opt)
+                )
+            ),
         "setsockopt(SO_REUSEADDR) failed"
     );
 
-    memset(&server_addr, 0, sizeof(server_addr));
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    server_addr.sin_port = htons(CLIENTS_PORT);
+    memset(&server_address, 0, sizeof(server_address));
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_address.sin_port = htons(CLIENTS_PORT);
 
     check(
         bind(
             server_socket,
-            (SA*) &server_addr,
-            sizeof(server_addr)
+            (SA*) &server_address,
+            sizeof(server_address)
         ),
         "Bind failed!"
     );
@@ -245,14 +260,15 @@ _Noreturn void client_connections_server(void *args) {
 
     while(true) {
         // wait for and accept an incoming connection
-        addr_size = sizeof(SA_IN);
+        address_size = sizeof(SA_IN);
 
         check(
             (client_socket = accept(
-                                 server_socket,
-                                 (SA*)&client_addr,
-                                 (socklen_t*) &addr_size
-                             )),
+                server_socket,
+                (SA*)&client_address,
+                (socklen_t*) &address_size
+            )
+        ),
             "Accept failed!"
         );
 
@@ -262,7 +278,6 @@ _Noreturn void client_connections_server(void *args) {
 
         // Prevent race condition
         pthread_mutex_lock(&client_pool_mutex);
-        printf("Queue client connection\n");
         enqueue_client_connection(pclient);
         pthread_cond_signal(&client_pool_condition_var);
         pthread_mutex_unlock(&client_pool_mutex);

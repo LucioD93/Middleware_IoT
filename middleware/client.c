@@ -1,5 +1,6 @@
 #include "client_utils.h"
 
+
 void print_usage() {
     printf("-r [1-6]   Tipo de peticion\n");
     printf("      1      Procesamiento de imagen\n");

@@ -432,7 +432,7 @@ metadata_node *select_worker(int request_type) {
         current_node = current_node->next;
     }
 
-    if (max_node == NULL) return NULL;
+    if (max_node == NULL) { printf("Failed to select worker\n");return NULL; }
 
     sleep_args *args = malloc(sizeof(sleep_args));
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;

@@ -25,7 +25,7 @@ void enqueue_client_connection(int* socket_descriptor);
 int* dequeue_client_connection();
 
 void enqueue_master_connection(int* socket_descriptor, int request_type, char *client_ip, int client_port);
-node_t dequeue_master_connection();
+node_t *dequeue_master_connection();
 
 void show_queue();
 

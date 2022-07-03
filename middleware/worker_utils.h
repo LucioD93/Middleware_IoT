@@ -19,11 +19,10 @@
 #include "socket_utils.h"
 #include "threading_utils.h"
 
-struct worker_arg {
+typedef struct worker_arg {
     int *socket;
     int *tasks_tracker;
-};
-typedef struct worker_arg worker_args;
+} worker_args;
 
 void worker(char master_server_address[16], int gpu);
 

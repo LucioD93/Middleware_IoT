@@ -50,6 +50,7 @@ void enqueue_worker_connection(int *socket_descriptor) {
 // Get first node in the queue, return NULL if empty
 int* dequeue_worker_connection() {
     node_t *temp = dequeue(&worker_queue_head, &worker_queue_tail);
+    if (temp == NULL) return NULL;
     int* socket_descriptor = temp->socket_descriptor;
     free(temp);
     return  socket_descriptor;
@@ -64,6 +65,7 @@ void enqueue_client_connection(int *socket_descriptor) {
 // Get first node in the queue, return NULL if empty
 int* dequeue_client_connection() {
     node_t *temp = dequeue(&client_queue_head, &client_queue_tail);
+    if (temp == NULL) return NULL;
     int* socket_descriptor = temp->socket_descriptor;
     free(temp);
     return  socket_descriptor;
@@ -82,15 +84,16 @@ void enqueue_master_connection(int *socket_descriptor, int request_type, char *c
 }
 
 // Get first node in the queue, return NULL if empty
-node_t dequeue_master_connection() {
+node_t* dequeue_master_connection() {
     node_t *temp = dequeue(&master_queue_head, &master_queue_tail);
-    node_t result;
-    result.socket_descriptor = temp->socket_descriptor;
-    result.connection = malloc(sizeof(client_connection));
-    result.connection->request_type = temp->connection->request_type;
-    result.connection->client_port = temp->connection->client_port;
-    result.connection->client_ip = malloc(15);
-    strcpy(result.connection->client_ip, temp->connection->client_ip);
+    if (temp == NULL) return NULL;
+    node_t *result;
+    result->socket_descriptor = temp->socket_descriptor;
+    result->connection = malloc(sizeof(client_connection));
+    result->connection->request_type = temp->connection->request_type;
+    result->connection->client_port = temp->connection->client_port;
+    result->connection->client_ip = malloc(15);
+    strcpy(result->connection->client_ip, temp->connection->client_ip);
     free(temp->connection);
     free(temp);
     return result;
