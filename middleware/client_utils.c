@@ -39,7 +39,7 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     } else if (request_type == IMAGE_PROCESSING_REQUEST) {
         strcpy(filename, "client_output.jpg");
         receive_image_file_over_socket(filename, worker_socket);
-        printf("Received text file from image. check %s\n", filename);
+        printf("Received image file from worker. check %s\n", filename);
     } else {
         char buffer[BUFFER_SIZE];
         size_t bytes_read;
@@ -90,7 +90,7 @@ _Noreturn void client_function(
         "Set socket option failed"
     );
 
-    bzero(&server_address, sizeof(server_address));
+    memset(&server_address, 0, sizeof(server_address));
     server_address.sin_family = AF_INET;
     server_address.sin_addr.s_addr = htonl(INADDR_ANY);
     server_address.sin_port = htons(0);
@@ -117,7 +117,7 @@ _Noreturn void client_function(
         "Client socket creation failed"
     );
 
-    bzero(&client_address, sizeof(client_address));
+    memset(&client_address, 0, sizeof(client_address));
     client_address.sin_family = AF_INET;
     client_address.sin_port = htons(CLIENTS_PORT);
 

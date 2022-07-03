@@ -6,6 +6,7 @@ void term() {
 
 void print_usage() {
     printf("-a [ip]    Direccion IP de servidor maestro\n");
+    printf("-g [1-10]  Valor de GPU\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -14,12 +15,17 @@ int main(int argc, char *argv[]) {
     action.sa_handler = term;
     sigaction(SIGINT, &action, NULL);
 
+    int gpu = 0;
+
     int option;
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
-    while((option = getopt(argc, argv, "r:a:")) != -1) {
+    while((option = getopt(argc, argv, "r:a:g:")) != -1) {
         switch(option) {
         case 'a': // Master server address
             strcpy(master_server_address, optarg);
+            break;
+        case 'g': //
+            gpu = atoi(optarg);
             break;
         case 'h':
             print_usage();
@@ -36,5 +42,5 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    worker(master_server_address);
+    worker(master_server_address, gpu);
 }

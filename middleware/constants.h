@@ -18,14 +18,15 @@
 #define IMAGE_LOCATION_REQUEST 5
 #define IP_LOCATION_REQUEST 6
 
+#define CPU_LOAD_THRESHOLD 90
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
 // Algorithm constants
-static const float ALPHA = 0.4;
-static const float BETA = 0.3;
-static const float GAMMA = 0.3;
+#define ALPHA 0.4
+#define BETA 0.3
+#define GAMMA 0.3
 
 
 #endif //MIDDLEWARE_CONSTANTS_H

@@ -82,6 +82,7 @@ void * handle_client_connection(void* p_client_socket) {
         printf("Wait \n");
         sleep_for_milliseconds(50);
     }
+    printf("Assigned %s to request %d\n", selected_worker->worker_metadata->uuid, request_type);
 
     struct sockaddr_in client_address;
     int len;
@@ -161,7 +162,7 @@ _Noreturn void master_worker_server(void *arg) {
         "setsockopt(SO_REUSEADDR) failed"
     );
 
-    bzero(&server_addr, sizeof(server_addr));
+    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(WORKERS_PORT);
@@ -227,7 +228,7 @@ _Noreturn void client_connections_server(void *args) {
         "setsockopt(SO_REUSEADDR) failed"
     );
 
-    bzero(&server_addr, sizeof(server_addr));
+    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
     server_addr.sin_port = htons(CLIENTS_PORT);

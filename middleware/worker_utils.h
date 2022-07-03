@@ -25,6 +25,6 @@ struct worker_arg {
 };
 typedef struct worker_arg worker_args;
 
-void worker(char master_server_address[16]);
+void worker(char master_server_address[16], int gpu);
 
 #endif //MIDDLEWARE_WORKER_UTILS_H

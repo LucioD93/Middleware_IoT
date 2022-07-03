@@ -1,20 +1,23 @@
 #include "socket_utils.h"
 
+
 void send_text_file_over_socket(char filename[BUFFER_SIZE], int socket) {
     char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "r");
+    size_t total_bytes;
     while(fgets(data, MAX_LINE, file) != NULL) {
         check(
-            send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            send(socket, data, strlen(data), 0) == SOCKET_ERROR,
             "ERROR: File sending failed!\n"
         );
-        bzero(data, MAX_LINE);
+        total_bytes += strlen(data);
+        memset(data, 0, MAX_LINE);
     }
     fclose(file);
-    char final[] = "Finalizado";
+    char final = EOF;
     check(
-        send(socket, final, 10, 0) == SOCKET_ERROR,
+        send(socket, &final, 1, 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
     );
     fflush(stdout);
@@ -25,46 +28,68 @@ void send_image_file_over_socket(char filename[BUFFER_SIZE], int socket) {
     char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "rb");
-    while(!feof(file)) {
-        fread(data, sizeof(char), MAX_LINE, file);
+    size_t read_bytes = 1, total_bytes = 0;
+    while(read_bytes != 0) {
+        read_bytes = fread(data, sizeof(char), MAX_LINE, file);
+        total_bytes += read_bytes;
         check(
-            send(socket, data, sizeof(data), 0) == SOCKET_ERROR,
+            send(socket, data, read_bytes, 0) == SOCKET_ERROR,
             "ERROR: File sending failed!\n"
         );
+        memset(data, 0, MAX_LINE);
     }
     fclose(file);
-    char final[] = "Finalizado";
+    char final = EOF;
     check(
-        send(socket, final, 10, 0) == SOCKET_ERROR,
+        send(socket, &final, 1, 0) == SOCKET_ERROR,
         "ERROR: File sending failed!\n"
     );
     fflush(stdout);
 }
 
+
 void receive_text_file_over_socket(char filename[MAX_LINE], int socket) {
     FILE * file;
     file = fopen(filename, "w");
-    char buffer[MAX_LINE];
-    memset(&buffer, 0, BUFFER_SIZE);
-    while(true) {
-        bzero(buffer, MAX_LINE);
-        recv(socket, buffer, MAX_LINE, 0);
-        if (strcmp(buffer, "Finalizado") == 0) break;
+    char buffer[MAX_LINE] = {0};
+    size_t bytes_read;
+    while((bytes_read = recv(socket, &buffer, MAX_LINE, 0)) > 0) {
+        if (buffer[bytes_read - 1] == EOF) {
+            char temp[MAX_LINE] = {0};
+            strncpy(temp, buffer, bytes_read - 1);
+            fputs(temp, file);
+            break;
+        }
         fputs(buffer, file);
+        memset(buffer, 0, MAX_LINE);
     }
     fclose(file);
 }
+
 
 void receive_image_file_over_socket(char filename[MAX_LINE], int socket) {
     FILE * file;
     file = fopen(filename, "wb");
-    char buffer[MAX_LINE];
-    size_t bytes_read;
-    while((bytes_read = recv(socket, buffer, MAX_LINE, 0)) > 0) {
-        if (strcmp(buffer, "Finalizado") == 0) break;
-        fwrite(buffer, sizeof(char), MAX_LINE, file);
-        bzero(buffer, MAX_LINE);
+    char buffer[MAX_LINE] = {0};
+    size_t bytes_read, total_bytes;
+    while((bytes_read = recv(socket, &buffer, MAX_LINE, 0)) > 0) {
+        total_bytes += bytes_read;
+        if (buffer[bytes_read - 1] == EOF && bytes_read != MAX_LINE) {
+            int check = 0;
+            int i = bytes_read;
+            while (check == 0 && i < MAX_LINE) {
+                check += buffer[i];
+                i++;
+            }
+            if (check == 0) {
+                char temp[MAX_LINE] = {0};
+                strncpy(temp, buffer, bytes_read - 1);
+                fwrite(buffer, sizeof(char), bytes_read - 1, file);
+                break;
+            }
+        }
+        fwrite(buffer, sizeof(char), bytes_read, file);
+        memset(buffer, 0, MAX_LINE);
     }
     fclose(file);
 }
-

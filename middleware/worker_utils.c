@@ -48,7 +48,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         "setsockopt(SO_REUSEADDR) failed"
     );
 
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(client_port);
 
@@ -57,6 +57,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         "Server address translation failed"
     );
 
+    printf("Connecting to client %d\n", request_type);
     int exp;
     for (int i = 0; i < 3; ++i) {
         exp = connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
@@ -70,8 +71,8 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         strcpy(sendline, filename);
         receive_text_file_over_socket(filename, sockfd);
     } else if (
-            request_type == IMAGE_PROCESSING_REQUEST ||
-            request_type == IMAGE_LOCATION_REQUEST
+        request_type == IMAGE_PROCESSING_REQUEST ||
+        request_type == IMAGE_LOCATION_REQUEST
     ) {
         char filename[MAX_LINE] = "worker.jpg";
         strcpy(sendline, "worker.jpg");
@@ -79,6 +80,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
     // TODO: process function params from client
 
+    printf("Processing request %d\n", request_type);
     if (request_type == IMAGE_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.jpg";
         send_image_file_over_socket(filename, sockfd);
@@ -95,11 +97,13 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         }
 
         sendbytes = sizeof(sendline);
+        printf("Sending response request %d\n", request_type);
         check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
         );
     }
+    printf("Finished request %d\n", request_type);
 
     check(close(sockfd), "Socket closing Failed");
 }
@@ -173,8 +177,8 @@ _Noreturn void master_worker_server(void *args) {
 }
 
 
-_Noreturn void worker_metadata_thread(char master_server_address[16]) {
-    Metadata worker_metadata = create_worker_metadata();
+_Noreturn void worker_metadata_thread(char master_server_address[16], int gpu) {
+    Metadata worker_metadata = create_worker_metadata(gpu);
     printf(
         "WORKER UUID [%s]\nCPU %d - RAM %d - GPU %d - Max Tasks %d\n",
         worker_metadata.uuid,
@@ -194,7 +198,7 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
         "Client socket creation failed"
     );
 
-    bzero(&servaddr, sizeof(servaddr));
+    memset(&servaddr, 0, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(WORKERS_PORT);
 
@@ -246,6 +250,6 @@ _Noreturn void worker_metadata_thread(char master_server_address[16]) {
 }
 
 
-void worker(char master_server_address[16]) {
-    worker_metadata_thread(master_server_address);
+void worker(char master_server_address[16], int gpu) {
+    worker_metadata_thread(master_server_address, gpu);
 }

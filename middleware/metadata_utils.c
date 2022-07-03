@@ -159,13 +159,13 @@ int get_max_tasks(Resource server) {
 }
 
 
-Resource get_local_resources() {
+Resource get_local_resources(int gpu) {
 
     Resource local_resources;
 
     local_resources.cpu = get_cpu_score();
     local_resources.ram = get_ram_score();
-    local_resources.gpu = 3;
+    local_resources.gpu = gpu;
     local_resources.cpu_usage = get_cpu_usage();
     local_resources.max_tasks = get_max_tasks(local_resources);
     local_resources.assigned_tasks = 0;
@@ -181,11 +181,11 @@ void generate_uuid(char *out) {
 }
 
 
-Metadata create_worker_metadata() {
+Metadata create_worker_metadata(int gpu) {
     Metadata worker_metadata;
 
     generate_uuid(worker_metadata.uuid);
-    worker_metadata.resources = get_local_resources();
+    worker_metadata.resources = get_local_resources(gpu);
 
     return worker_metadata;
 }
@@ -380,7 +380,7 @@ float worker_apc_for_request_type(int request_type, Resource worker) {
 
 
 bool can_resource_process_request(Resource worker) {
-    return worker.assigned_tasks < worker.max_tasks && worker.cpu_usage < 90;
+    return worker.assigned_tasks < worker.max_tasks && worker.cpu_usage < CPU_LOAD_THRESHOLD;
 }
 
 
