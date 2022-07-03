@@ -19,6 +19,8 @@ void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor, c
         new_node->connection->client_port = connection->client_port;
         new_node->connection->client_ip = malloc(15);
         strcpy(new_node->connection->client_ip, connection->client_ip);
+    } else {
+        new_node->connection = NULL;
     }
     new_node->next = NULL;
     if (*queue_tail == NULL) {

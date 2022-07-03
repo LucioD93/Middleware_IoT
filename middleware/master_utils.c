@@ -81,11 +81,11 @@ void * handle_client_connection(void* p_client_socket) {
     }
     printf("Assigned %s to request %d\n", selected_worker->worker_metadata->uuid, request_type);
 
-    struct sockaddr_in client_address;
+    SA_IN client_address;
     int len;
     len = sizeof(client_address);
     check(
-        getpeername(client_socket, (struct sockaddr *)&client_address, &len),
+        getpeername(client_socket, (SA *)&client_address, &len),
         "Failed getpeername"
     );
 

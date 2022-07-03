@@ -104,10 +104,10 @@ _Noreturn void client_function(
         "Bind failed!"
     );
 
-    struct sockaddr_in sin;
+    SA_IN sin;
     int len = sizeof(sin);
     check(
-        (getsockname(worker_socket, (struct sockaddr *)&sin, &len) == -1),
+        (getsockname(worker_socket, (SA *)&sin, &len) == -1),
         "Get socket port failed!"
     );
     int worker_port = ntohs(sin.sin_port);
@@ -127,7 +127,7 @@ _Noreturn void client_function(
     );
 
     check(
-        (connect(master_socket, (SA *) &client_address, sizeof(client_address))),
+        (connect(master_socket, (SA *)&client_address, sizeof(client_address))),
         "Connection failed"
     );
 

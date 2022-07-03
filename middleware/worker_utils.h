@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <time.h>
 #include <getopt.h>
+#include <semaphore.h>
 #include "constants.h"
 #include "metadata_utils.h"
 #include "socket_utils.h"

@@ -6,6 +6,8 @@ pthread_cond_t master_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t assigned_tasks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+sem_t sem_consumer;
+sem_t sem_producer;
 
 void get_date_time(char *currentTime) {
     time_t timer;
@@ -32,7 +34,6 @@ void get_random_city(char *city) {
 
 
 void *handle_master_connection(int request_type, char *client_ip, int client_port) {
-    printf("Worker got request %d\n", request_type);
     // Connect to client socket
     int client_socket, send_bytes;
     SA_IN server_address;
@@ -67,12 +68,13 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
 
     int exp;
     for (int i = 1; i <= 3; ++i) {
-        exp = connect(client_socket, (SA *) &server_address, sizeof(server_address));
+        exp = connect(
+            client_socket, (SA *)&server_address, sizeof(server_address)
+        );
         if (exp != SOCKET_ERROR) break;
-        printf("Waiting for client\n");
         sleep_for_milliseconds(250 * i);
     }
-    check(exp,"Connection to client failed");
+    check(exp, "Connection to client failed");
 
     if (request_type == WORD_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.txt";
@@ -110,17 +112,19 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
 
     check(close(client_socket), "Socket closing Failed");
-    printf("Finished serving request %d\n", request_type);
 }
 
 
 _Noreturn void * master_connection_thread_function(void *arg) {
     int *tasks_tracker = arg;
     while (true) {
+        // Semaphores!
+        sem_wait(&sem_producer);
         pthread_mutex_lock(&master_pool_mutex);
-        pthread_cond_wait(&master_pool_condition_var, &master_pool_mutex);
         node_t *result = dequeue_master_connection();
         pthread_mutex_unlock(&master_pool_mutex);
+        sem_post(&sem_consumer);
+
         if (result != NULL) {
             // There is a connection
             pthread_mutex_lock(&assigned_tasks_mutex);
@@ -148,7 +152,7 @@ _Noreturn void master_worker_server(void *args) {
     size_t message_size;
 
     // Create threads to handle connections
-    for (int i = 0; i < 1; i++) {
+    for (int i = 0; i < THREAD_POOL_SIZE; i++) {
         pthread_create(
             &master_thread_pool[i],
             NULL,
@@ -176,11 +180,12 @@ _Noreturn void master_worker_server(void *args) {
         int *p_client = malloc(sizeof(int));
         *p_client = worker_socket;
 
-        // Prevent race condition
+        // Prevent race condition with semaphores!
+        sem_wait(&sem_consumer);
         pthread_mutex_lock(&master_pool_mutex);
         enqueue_master_connection(p_client, request_type, client_ip, client_port);
-        pthread_cond_signal(&master_pool_condition_var);
         pthread_mutex_unlock(&master_pool_mutex);
+        sem_post(&sem_producer);
     }
 }
 
@@ -216,7 +221,7 @@ _Noreturn void worker_metadata_thread(char master_server_address[16], int gpu) {
     );
 
     check(
-        (connect(master_socket, (SA *) & server_address, sizeof(server_address))),
+        (connect(master_socket, (SA *)&server_address, sizeof(server_address))),
         "Connection to Master failed"
     );
 
@@ -251,10 +256,11 @@ _Noreturn void worker_metadata_thread(char master_server_address[16], int gpu) {
         );
         sleep(WORKER_SYNC_TIMER);
     }
-
 }
 
 
 void worker(char master_server_address[16], int gpu) {
+    sem_init(&sem_producer, 0, 0);
+    sem_init(&sem_consumer, 0, 1);
     worker_metadata_thread(master_server_address, gpu);
 }
