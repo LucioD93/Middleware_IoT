@@ -325,7 +325,6 @@ void remove_from_list(char* uuid) {
         free(current);
     }
     printf("REMOVED %s\n", uuid);
-    show_list();
 }
 
 
@@ -424,7 +423,7 @@ metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
     float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
-    float current_apc = max_apc;
+    float current_apc;
     while (current_node != NULL) {
         current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
         if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata->resources)) {

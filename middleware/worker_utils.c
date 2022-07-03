@@ -57,7 +57,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         "Server address translation failed"
     );
 
-    printf("Connecting to client %d\n", request_type);
+    printf("Connecting to client (%s) (%d) (%d)\n", client_ip, client_port, request_type);
     int exp;
     for (int i = 0; i < 3; ++i) {
         exp = connect(sockfd, (SA *) &servaddr, sizeof(servaddr));
@@ -80,7 +80,6 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
     // TODO: process function params from client
 
-    printf("Processing request %d\n", request_type);
     if (request_type == IMAGE_PROCESSING_REQUEST) {
         char filename[MAX_LINE] = "worker.jpg";
         send_image_file_over_socket(filename, sockfd);
@@ -97,13 +96,11 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
         }
 
         sendbytes = sizeof(sendline);
-        printf("Sending response request %d\n", request_type);
         check(
             (write(sockfd, &sendline, sendbytes) != sendbytes),
             "Socket write failed"
         );
     }
-    printf("Finished request %d\n", request_type);
 
     check(close(sockfd), "Socket closing Failed");
 }

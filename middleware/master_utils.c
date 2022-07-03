@@ -31,7 +31,6 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             // Bad message. Close connection
             remove_from_list(uuid);
             check((close(worker_socket)), "Worker socket closing failed!");
-            show_list();
         }
         buffer[message_size - 1] = 0; // null terminate
         Metadata worker_metadata = str_to_metadata(buffer);
@@ -46,8 +45,6 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             pthread_mutex_lock(&worker_pool_mutex);
             add_to_list(worker_metadata, worker_socket);
             pthread_mutex_unlock(&worker_pool_mutex);
-
-            show_list();
         }
 
         fflush(stdout);
@@ -117,7 +114,6 @@ _Noreturn void * worker_connection_thread_function(void *arg) {
         pthread_mutex_unlock(&worker_pool_mutex);
         if (p_worker != NULL) {
             // There is a connection
-            printf("Got worker connection!\n");
             handle_worker_connection(p_worker);
         }
     }
@@ -138,7 +134,7 @@ _Noreturn void * client_connection_thread_function(void *arg) {
 }
 
 
-_Noreturn void master_worker_server(void *arg) {
+_Noreturn void worker_connections_server(void *arg) {
     int server_socket, worker_socket, addr_size;
     SA_IN server_addr, worker_addr;
 
@@ -266,6 +262,7 @@ _Noreturn void client_connections_server(void *args) {
 
         // Prevent race condition
         pthread_mutex_lock(&client_pool_mutex);
+        printf("Queue client connection\n");
         enqueue_client_connection(pclient);
         pthread_cond_signal(&client_pool_condition_var);
         pthread_mutex_unlock(&client_pool_mutex);

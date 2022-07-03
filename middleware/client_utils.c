@@ -112,6 +112,7 @@ _Noreturn void client_function(
     );
     int worker_port = ntohs(sin.sin_port);
 
+    printf("Using port %d\n", worker_port);
     check(
         (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
         "Client socket creation failed"
