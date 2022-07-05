@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS= -g -I. -lpthread -luuid -lm
+CFLAGS= -I. -lpthread -luuid -lm
 OBJ_WORKER = worker.o metadata_utils.o queue.o socket_utils.o threading_utils.o worker_utils.o
 OBJ_MASTER = master.o metadata_utils.o queue.o threading_utils.o master_utils.o socket_utils.o worker_utils.o
 OBJ_CLIENT = client.o threading_utils.o socket_utils.o client_utils.o
@@ -23,3 +23,5 @@ client: $(OBJ_CLIENT)
 
 bash:
 	bash
+
+all: master worker client

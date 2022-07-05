@@ -1,8 +1,7 @@
 #include "worker_utils.h"
 
-pthread_t master_thread_pool[THREAD_POOL_SIZE];
+pthread_t master_thread_pool[2];
 pthread_mutex_t master_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t master_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t assigned_tasks_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -34,6 +33,7 @@ void get_random_city(char *city) {
 
 
 void *handle_master_connection(int request_type, char *client_ip, int client_port) {
+    printf("Serving request %d\n", request_type);
     // Connect to client socket
     int client_socket, send_bytes;
     SA_IN server_address;
@@ -45,16 +45,16 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     );
     int opt = 1;
     check(
-            (
-                    setsockopt(
-                            client_socket,
-                            SOL_SOCKET,
-                            SO_REUSEADDR | SO_REUSEPORT,
-                            &opt,
-                            sizeof(opt)
-                    )
-            ),
-            "setsockopt(SO_REUSEADDR) failed"
+        (
+            setsockopt(
+                client_socket,
+                SOL_SOCKET,
+                SO_REUSEADDR | SO_REUSEPORT,
+                &opt,
+                sizeof(opt)
+            )
+        ),
+        "setsockopt(SO_REUSEADDR) failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -112,6 +112,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
 
     check(close(client_socket), "Socket closing Failed");
+    printf("Finished serving request %d\n", request_type);
 }
 
 
@@ -128,7 +129,7 @@ _Noreturn void * master_connection_thread_function(void *arg) {
         if (result != NULL) {
             // There is a connection
             pthread_mutex_lock(&assigned_tasks_mutex);
-            (*tasks_tracker)++;
+            *tasks_tracker = *tasks_tracker + 1;
             pthread_mutex_unlock(&assigned_tasks_mutex);
             handle_master_connection(
                 result->connection->request_type,
@@ -136,8 +137,11 @@ _Noreturn void * master_connection_thread_function(void *arg) {
                 result->connection->client_port
             );
             pthread_mutex_lock(&assigned_tasks_mutex);
-            (*tasks_tracker)--;
+            *tasks_tracker = *tasks_tracker - 1;
             pthread_mutex_unlock(&assigned_tasks_mutex);
+            free(result->connection->client_ip);
+            free(result->connection);
+            free(result);
         }
     }
 }
@@ -152,7 +156,7 @@ _Noreturn void master_worker_server(void *args) {
     size_t message_size;
 
     // Create threads to handle connections
-    for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+    for (int i = 0; i < 2; i++) {
         pthread_create(
             &master_thread_pool[i],
             NULL,

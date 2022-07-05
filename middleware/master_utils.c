@@ -8,6 +8,8 @@ pthread_t clients_thread_pool[THREAD_POOL_SIZE];
 pthread_mutex_t client_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
+pthread_mutex_t worker_selection_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 
 _Noreturn void * handle_worker_connection(void* p_worker_socket) {
     int worker_socket = *((int*)p_worker_socket);
@@ -74,10 +76,10 @@ void * handle_client_connection(void* p_client_socket) {
     metadata_node *selected_worker = NULL;
 
     while(true) {
+        pthread_mutex_lock(&worker_selection_mutex);
         selected_worker = select_worker(request_type);
+        pthread_mutex_unlock(&worker_selection_mutex);
         if (selected_worker != NULL) break;
-        printf("Waiting for available worker \n");
-        sleep_for_milliseconds(50);
     }
     printf("Assigned %s to request %d\n", selected_worker->worker_metadata->uuid, request_type);
 

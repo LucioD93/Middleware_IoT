@@ -155,6 +155,7 @@ int get_max_tasks(Resource server) {
 
     int max_value = get_max_task_unbound(max_server);
     float value = max_value / THREAD_POOL_SIZE;
+
     return round(get_max_task_unbound(server)/value) + 1;
 }
 
@@ -219,12 +220,12 @@ char *metadata_to_str(Metadata metadata) {
     /* allocate/validate string to hold all values (+1 to null-terminate) */
     char *apstr = calloc (1, sizeof *apstr * len + 1);
     if (!apstr) {
-        fprintf (stderr, "%s() error: virtual memory allocation failed.\n", __func__);
+        fprintf(stderr, "%s() error: virtual memory allocation failed.\n", __func__);
     }
 
     /* write/validate struct values to apstr */
     if (
-        snprintf (
+        snprintf(
             apstr,
             len + 1,
             "%d,%d,%d,%d,%d,%d,%d,%lld,%s\n",
@@ -240,7 +241,7 @@ char *metadata_to_str(Metadata metadata) {
         ) > len + 1
     )
     {
-        fprintf (stderr, "%s() error: snprintf returned truncated result.\n", __func__);
+        fprintf(stderr, "%s() error: snprintf returned truncated result.\n", __func__);
         return NULL;
     }
 
@@ -378,27 +379,18 @@ float worker_apc_for_request_type(int request_type, Resource worker) {
 }
 
 
-bool can_resource_process_request(Resource worker) {
-    return worker.assigned_tasks < worker.max_tasks && worker.cpu_usage < CPU_LOAD_THRESHOLD;
+bool can_resource_process_request(Metadata *worker) {
+    return worker->resources.estimated_tasks < worker->resources.max_tasks && worker->resources.cpu_usage < CPU_LOAD_THRESHOLD;
 }
 
 
-int estimate_time_for_request_type(int request_type) {
-    switch (request_type) {
-    case IMAGE_PROCESSING_REQUEST:
-        return 600;
-    case WEB_REQUEST:
-        return 10;
-    case WORD_PROCESSING_REQUEST:
-        return 100;
-    case SYNCHRONIZATION_REQUEST:
-        return 10;
-    case IMAGE_LOCATION_REQUEST:
-        return 300;
-    case IP_LOCATION_REQUEST:
-        return 30;
-    }
-    return 999;
+double modified_tanh(int r) {
+    return tanh(r * TANH_MODIFIER);
+}
+
+
+int estimate_time_for_request_type(int request_type, Resource resource) {
+    return PROCESSING_TIME*(2 - modified_tanh(worker_apc_for_request_type(request_type, resource))) + resource.network_delay * 2;
 }
 
 
@@ -411,11 +403,9 @@ void sleep_for_milliseconds(long milliseconds) {
 
 void *sleeper_function(void *args) {
     sleep_args actual_args = *((sleep_args *)args);
-    (*actual_args.tasks_tracker)++;
-
-    sleep_for_milliseconds(estimate_time_for_request_type(actual_args.request_type));
-
-    if(*actual_args.tasks_tracker > 0) (*actual_args.tasks_tracker)--;
+    int * tasks_tracker = actual_args.tasks_tracker;
+    sleep_for_milliseconds(actual_args.milliseconds);
+    if(*actual_args.tasks_tracker > 0) *tasks_tracker = *tasks_tracker - 1;
 }
 
 
@@ -426,17 +416,19 @@ metadata_node *select_worker(int request_type) {
     float current_apc;
     while (current_node != NULL) {
         current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
-        if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata->resources)) {
+        if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata)) {
             max_node = current_node;
         }
         current_node = current_node->next;
     }
 
-    if (max_node == NULL) { printf("Failed to select worker\n");return NULL; }
+    if (max_node == NULL) return NULL;
 
     sleep_args *args = malloc(sizeof(sleep_args));
+    max_node->worker_metadata->resources.estimated_tasks = max_node->worker_metadata->resources.estimated_tasks + 1;
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
     args->request_type = request_type;
+    args->milliseconds = estimate_time_for_request_type(request_type, max_node->worker_metadata->resources);
     pthread_t sleep_thread;
     pthread_create(
         &sleep_thread,

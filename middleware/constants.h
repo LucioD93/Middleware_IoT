@@ -8,7 +8,10 @@
 #define DEFAULT_MASTER_SERVER_ADDRESS "127.0.0.1"
 #define WORKER_SYNC_TIMER 30
 
-#define THREAD_POOL_SIZE 10
+#define THREAD_POOL_SIZE 20
+
+#define PROCESSING_TIME 50
+#define TANH_MODIFIER 0.03
 
 // Requests types
 #define IMAGE_PROCESSING_REQUEST 1
@@ -18,7 +21,7 @@
 #define IMAGE_LOCATION_REQUEST 5
 #define IP_LOCATION_REQUEST 6
 
-#define CPU_LOAD_THRESHOLD 90
+#define CPU_LOAD_THRESHOLD 100
 
 typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
