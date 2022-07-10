@@ -146,7 +146,7 @@ int get_max_task_unbound(Resource server) {
     float ram = server.ram * BETA;
     float gpu = server.gpu * GAMMA;
 
-    return round(pow(cpu + ram + gpu, 2));
+    return round(cpu + ram + gpu);
 }
 
 
@@ -154,9 +154,10 @@ int get_max_tasks(Resource server) {
     Resource max_server = {10,10,10};
 
     int max_value = get_max_task_unbound(max_server);
-    float value = max_value / THREAD_POOL_SIZE;
+    int server_value = get_max_task_unbound(server);
+    int result = round(server_value * acosh(max_value * THREAD_POOL_SIZE));
 
-    return round(get_max_task_unbound(server)/value) + 1;
+    return result;
 }
 
 
@@ -390,7 +391,9 @@ double modified_tanh(int r) {
 
 
 int estimate_time_for_request_type(int request_type, Resource resource) {
-    return PROCESSING_TIME*(2 - modified_tanh(worker_apc_for_request_type(request_type, resource))) + resource.network_delay * 2;
+    double p = PROCESSING_TIME*(2 - modified_tanh(worker_apc_for_request_type(request_type, resource)));
+    int result = p + resource.network_delay * 2;
+    return result; 
 }
 
 

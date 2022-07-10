@@ -14,11 +14,13 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     address_size = sizeof(SA_IN);
 
     check(
-        (worker_socket = accept(
-             server_socket,
-             (SA*)&worker_address,
-             (socklen_t*) &address_size
-         )),
+        (
+            worker_socket = accept(
+                server_socket,
+                (SA*)&worker_address,
+                (socklen_t*) &address_size
+            )
+        ),
         "Accept failed!"
     );
 
@@ -26,18 +28,23 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     if (request_type == WORD_PROCESSING_REQUEST) {
         send_text_file_over_socket(filename, worker_socket);
     } else if (
-            request_type == IMAGE_PROCESSING_REQUEST ||
-            request_type == IMAGE_LOCATION_REQUEST
+        request_type == IMAGE_PROCESSING_REQUEST ||
+        request_type == IMAGE_LOCATION_REQUEST
     ) {
         send_image_file_over_socket(filename, worker_socket);
     }
 
     if (request_type == WORD_PROCESSING_REQUEST) {
-        strcpy(filename, "client_output.txt");
+        printf("Receiving text file back\n");
+        char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
+        generate_uuid(uuid);
+        sprintf(filename, "output-%s.txt", uuid);
         receive_text_file_over_socket(filename, worker_socket);
         printf("Response from worker: |%s|\n", filename);
     } else if (request_type == IMAGE_PROCESSING_REQUEST) {
-        strcpy(filename, "client_output.jpg");
+        char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
+        generate_uuid(uuid);
+        sprintf(filename, "output-%s.jpg", uuid);
         receive_image_file_over_socket(filename, worker_socket);
         printf("Response from worker: |%s|\n", filename);
     } else {
@@ -63,31 +70,45 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     check(close(worker_socket), "Socket closing Failed");
 }
 
-_Noreturn void client_function(
+void client_function(
     int request_type,
-    char filename[MAX_LINE],
     char master_server_address[16]
 ) {
+    if (request_type == 7) {
+        request_type = rand() % 6 + 1;
+    }
+
+    printf("Starting client with request type %d\n", request_type);
+
+    char filename[MAX_LINE];
+    switch(request_type) {
+    case WORD_PROCESSING_REQUEST:
+        strcpy(filename, "client.txt");
+        break;
+    case IMAGE_PROCESSING_REQUEST:
+    case IMAGE_LOCATION_REQUEST:
+        strcpy(filename, "client.jpg");
+        break;
+    }
+
     int master_socket, worker_socket, server_socket, bytes_to_send;
     SA_IN client_address, server_address;
     char line_to_send[MAX_LINE];
+    struct sctp_initmsg initmsg;
 
     // Open worker socket first to get the port that will be used
     check(
-        (worker_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Client socket for worker creation failed"
+        (worker_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create client socket!"
     );
-    int opt = 1;
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
-        (
-            setsockopt(
-                worker_socket,
-                SOL_SOCKET,
-                SO_REUSEADDR | SO_REUSEPORT,
-                &opt, sizeof(opt)
-            )
-        ),
-        "Set socket option failed"
+        (setsockopt(worker_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "client socket for worker setsockopt failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -113,8 +134,17 @@ _Noreturn void client_function(
     int worker_port = ntohs(sin.sin_port);
 
     check(
-        (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Client socket creation failed"
+        (master_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create client socket!"
+    );
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
+    check(
+        (setsockopt(master_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "client socket for master setsockopts failed"
     );
 
     memset(&client_address, 0, sizeof(client_address));
@@ -128,11 +158,11 @@ _Noreturn void client_function(
 
     check(
         (connect(master_socket, (SA *)&client_address, sizeof(client_address))),
-        "Connection failed"
+        "Connection to master failed"
     );
 
     sprintf(line_to_send, "%d-%d", request_type, worker_port);
-    bytes_to_send = sizeof(line_to_send);
+    bytes_to_send = 8;
 
     check(
         (write(master_socket, &line_to_send, bytes_to_send) != bytes_to_send),
@@ -143,5 +173,5 @@ _Noreturn void client_function(
     worker_connection_function(request_type, filename, worker_socket);
 
     fflush(stdout);
-    exit(0);
+    // exit(0);
 }

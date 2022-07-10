@@ -1,6 +1,6 @@
 #include "worker_utils.h"
 
-pthread_t master_thread_pool[2];
+pthread_t* master_thread_pool;
 pthread_mutex_t master_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t assigned_tasks_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -33,28 +33,25 @@ void get_random_city(char *city) {
 
 
 void *handle_master_connection(int request_type, char *client_ip, int client_port) {
-    printf("Serving request %d\n", request_type);
+    printf("Worker started serving request %d %s:%d\n", request_type, client_ip, client_port);
     // Connect to client socket
     int client_socket, send_bytes;
     SA_IN server_address;
     char send_line[MAX_LINE];
+    struct sctp_initmsg initmsg;
 
     check(
-        (client_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Client socket creation failed"
+        (client_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create client socket!"
     );
-    int opt = 1;
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
-        (
-            setsockopt(
-                client_socket,
-                SOL_SOCKET,
-                SO_REUSEADDR | SO_REUSEPORT,
-                &opt,
-                sizeof(opt)
-            )
-        ),
-        "setsockopt(SO_REUSEADDR) failed"
+        (setsockopt(client_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "worker socket to master setsockopt failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -67,6 +64,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     );
 
     int exp;
+
     for (int i = 1; i <= 3; ++i) {
         exp = connect(
             client_socket, (SA *)&server_address, sizeof(server_address)
@@ -76,24 +74,28 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
     check(exp, "Connection to client failed");
 
+    char filename[MAX_LINE];
+
     if (request_type == WORD_PROCESSING_REQUEST) {
-        char filename[MAX_LINE] = "worker.txt";
-        strcpy(send_line, filename);
+        char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
+        generate_uuid(uuid);
+        sprintf(filename, "temp-%s.txt", uuid);
         receive_text_file_over_socket(filename, client_socket);
     } else if (
         request_type == IMAGE_PROCESSING_REQUEST ||
         request_type == IMAGE_LOCATION_REQUEST
     ) {
-        char filename[MAX_LINE] = "worker.jpg";
-        strcpy(send_line, "worker.jpg");
+        char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
+        generate_uuid(uuid);
+        sprintf(filename, "temp-%s.jpg", uuid);
         receive_image_file_over_socket(filename, client_socket);
     }
 
     if (request_type == IMAGE_PROCESSING_REQUEST) {
-        char filename[MAX_LINE] = "worker.jpg";
+        // char filename[MAX_LINE] = "worker.jpg";
         send_image_file_over_socket(filename, client_socket);
     } else if (request_type == WORD_PROCESSING_REQUEST) {
-        char filename[MAX_LINE] = "worker.txt";
+        // char filename[MAX_LINE] = "worker.txt";
         send_text_file_over_socket(filename, client_socket);
     } else {
         if (request_type == WEB_REQUEST) {
@@ -104,7 +106,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
             get_random_city(send_line);
         }
 
-        send_bytes = sizeof(send_line);
+        send_bytes = strlen(send_line);
         check(
             (write(client_socket, &send_line, send_bytes) != send_bytes),
             "Socket write failed"
@@ -112,7 +114,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
 
     check(close(client_socket), "Socket closing Failed");
-    printf("Finished serving request %d\n", request_type);
+    printf("Finished request %d (%s:%d)\n", request_type, client_ip, client_port);
 }
 
 
@@ -146,17 +148,20 @@ _Noreturn void * master_connection_thread_function(void *arg) {
     }
 }
 
+
 _Noreturn void master_worker_server(void *args) {
     worker_args actual_args = *((worker_args*)args);
     int worker_socket;
 
     int master_socket = *actual_args.socket;
+    int thread_pool_size = actual_args.thread_pool_size;
     char buffer[BUFFER_SIZE];
     size_t bytes_read;
     size_t message_size;
 
     // Create threads to handle connections
-    for (int i = 0; i < 2; i++) {
+    master_thread_pool = (pthread_t*)malloc(sizeof(pthread_t)*thread_pool_size);
+    for (int i = 0; i < thread_pool_size; i++) {
         pthread_create(
             &master_thread_pool[i],
             NULL,
@@ -169,15 +174,16 @@ _Noreturn void master_worker_server(void *args) {
         memset(&buffer, 0, BUFFER_SIZE);
         message_size = 0;
         // read master's message
-        while((bytes_read = read(master_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+        while((bytes_read = read(master_socket, buffer + message_size, 26 - message_size)) > 0) {
             message_size += bytes_read;
-            if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
+            if(message_size > 26 || buffer[message_size - 1] == 0) break;
         }
         buffer[message_size - 1] = 0; // null terminate
+        printf("Worker got %s (%ld)\n", buffer, message_size);
 
         char *client_ip = malloc(15);
         int request_type, client_port;
-        sscanf(buffer, "%s | %d-%d", client_ip, &request_type, &client_port);
+        sscanf(buffer, "%s | %d-%d", client_ip, &request_type, &client_port);\
         fflush(stdout);
 
         // Queue connection so that a worker thread can grab it
@@ -209,10 +215,20 @@ _Noreturn void worker_metadata_thread(char master_server_address[16], int gpu) {
     SA_IN server_address;
     char send_line[MAX_LINE];
     char *metadata_str;
+    struct sctp_initmsg initmsg;
 
     check(
-        (master_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Client socket creation failed"
+        (master_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create client socket!"
+    );
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
+    check(
+        (setsockopt(master_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "worker socket to client setsockopt failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -234,6 +250,7 @@ _Noreturn void worker_metadata_thread(char master_server_address[16], int gpu) {
     args->socket = malloc(sizeof(int));
     *args->socket = master_socket;
     args->tasks_tracker = &worker_metadata.resources.assigned_tasks;
+    args->thread_pool_size = worker_metadata.resources.max_tasks;
     pthread_create(
         &worker_connections_thread,
         NULL,

@@ -9,15 +9,32 @@ void print_usage() {
     printf("      4      Sincronizacion\n");
     printf("      5      Localizacion por imagen\n");
     printf("      6      Localizacion por direccion IP\n");
+    printf("      7      Seleccion aleatoria\n");
     printf("-a [ip]    Direccion IP de servidor maestro\n");
 }
 
 
+typedef struct CA {
+    int request_type;
+    char master_server_address[MAX_LINE];
+} client_args;
+
+
+void *client_thread_function(void *args) {
+    client_args actual_args = *((client_args *)args);
+    int request_type = actual_args.request_type;
+    char *master_server_address = actual_args.master_server_address;
+    client_function(request_type, master_server_address);
+}
+
 int main(int argc, char *argv[]) {
-    int option, request_type;
+    int option, request_type, number_of_requests = 1;
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
-    while((option = getopt(argc, argv, "r:a:")) != -1) {
+    while((option = getopt(argc, argv, "r:a:n:")) != -1) {
         switch(option) {
+        case 'n': // Number of requests
+            number_of_requests = atoi(optarg);
+            break;
         case 'r': // Request type
             request_type = atoi(optarg);
             break;
@@ -34,7 +51,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    if (request_type < 1 || request_type > 6) {
+    if (request_type < 1 || request_type > 7) {
         printf("Error! Tipo de peticion debe estar entre 1 y 6\n");
         exit(1);
     }
@@ -42,15 +59,23 @@ int main(int argc, char *argv[]) {
         printf("Invalid IP address for master server\n");
         exit(1);
     }
-    char filename[MAX_LINE];
-    switch(request_type) {
-    case WORD_PROCESSING_REQUEST:
-        strcpy(filename, "client.txt");
-        break;
-    case IMAGE_PROCESSING_REQUEST:
-    case IMAGE_LOCATION_REQUEST:
-        strcpy(filename, "client.jpg");
-        break;
+    
+    pthread_t clients_thread_pool[number_of_requests];
+    client_args *args_for_client[number_of_requests];
+    for (int i = 0; i < number_of_requests; i++) {
+        args_for_client[i] = malloc(sizeof(client_args));
+        args_for_client[i]->request_type = request_type;
+        strcpy(args_for_client[i]->master_server_address, master_server_address);
+        pthread_create(
+            &clients_thread_pool[i],
+            NULL,
+            client_thread_function,
+            args_for_client[i]
+        );
     }
-    client_function(request_type, filename, master_server_address);
+
+    for (int i = 0; i < number_of_requests; i++) {
+        pthread_join(clients_thread_pool[i], NULL);
+        free(args_for_client[i]);
+    }
 }

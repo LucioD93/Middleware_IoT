@@ -1,15 +1,14 @@
 #include "master_utils.h"
 
-pthread_t workers_thread_pool[THREAD_POOL_SIZE];
+pthread_t workers_thread_pool[WORKERS_THREAD_POOL_SIZE];
 pthread_mutex_t worker_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t worker_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
-pthread_t clients_thread_pool[THREAD_POOL_SIZE];
+pthread_t clients_thread_pool[CLIENT_THREAD_POOL_SIZE];
 pthread_mutex_t client_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
 pthread_mutex_t worker_selection_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 
 _Noreturn void * handle_worker_connection(void* p_worker_socket) {
     int worker_socket = *((int*)p_worker_socket);
@@ -29,11 +28,11 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             message_size += bytes_read;
             if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
-        if(strlen(buffer) == 0) {
-            // Bad message. Close connection
-            remove_from_list(uuid);
-            check((close(worker_socket)), "Worker socket closing failed!");
-        }
+        // if(strlen(buffer) == 0) {
+        //     // Bad message. Close connection
+        //     check((close(worker_socket)), "Worker socket closing failed!");
+        //     remove_from_list(uuid);
+        // }
         buffer[message_size - 1] = 0; // null terminate
         Metadata worker_metadata = str_to_metadata(buffer);
 
@@ -54,19 +53,18 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
 }
 
 
-void * handle_client_connection(void* p_client_socket) {
+void *handle_client_connection(void* p_client_socket) {
     int client_socket = *((int*)p_client_socket);
     free(p_client_socket);
     char buffer[BUFFER_SIZE];
-    size_t bytes_read;
-    size_t message_size;
+    size_t bytes_read, message_size;
     memset(&buffer, 0, BUFFER_SIZE);
     bytes_read = 0;
     message_size = 0;
     // read the client's message
-    while((bytes_read = read(client_socket, buffer + message_size, sizeof(buffer) - message_size)) > 0) {
+    while((bytes_read = read(client_socket, buffer + message_size, 8 - message_size)) > 0) {
         message_size += bytes_read;
-        if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
+        if(message_size > 8 || buffer[message_size - 1] == 0) break;
     }
     buffer[message_size - 1] = 0; // null terminate
 
@@ -80,26 +78,27 @@ void * handle_client_connection(void* p_client_socket) {
         selected_worker = select_worker(request_type);
         pthread_mutex_unlock(&worker_selection_mutex);
         if (selected_worker != NULL) break;
+        sleep_for_milliseconds(15);
     }
-    printf("Assigned %s to request %d\n", selected_worker->worker_metadata->uuid, request_type);
 
     SA_IN client_address;
     int len;
     len = sizeof(client_address);
+    printf("Getpeername %p\n", &client_socket);
     check(
         getpeername(client_socket, (SA *)&client_address, &len),
         "Failed getpeername"
     );
 
-    char client_connection[MAX_LINE];
-    strcpy(client_connection, inet_ntoa(client_address.sin_addr));
-    strcat(client_connection, " | ");
-    strcat(client_connection, buffer);
-    int sendbytes = sizeof (client_connection);
+    char request_representation[MAX_LINE];
+    strcpy(request_representation, inet_ntoa(client_address.sin_addr));
+    strcat(request_representation, " | ");
+    strcat(request_representation, buffer);
+    int sendbytes = 26;
 
     // Send client ip to worker socket
     check(
-        (write(selected_worker->worker_socket, &client_connection, sendbytes) != sendbytes),
+        (write(selected_worker->worker_socket, &request_representation, sendbytes) != sendbytes),
         "Socket write failed"
     );
 
@@ -139,9 +138,10 @@ _Noreturn void * client_connection_thread_function() {
 _Noreturn void worker_connections_server() {
     int server_socket, worker_socket, address_size;
     SA_IN server_address, worker_address;
+    struct sctp_initmsg initmsg;
 
     // Create threads to handle connections
-    for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+    for (int i = 0; i < WORKERS_THREAD_POOL_SIZE; i++) {
         pthread_create(
             &workers_thread_pool[i],
             NULL,
@@ -151,13 +151,17 @@ _Noreturn void worker_connections_server() {
     }
 
     check(
-        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create worker socket!"
     );
-    int opt = 1;
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
-        (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt))),
-        "setsockopt(SO_REUSEADDR) failed"
+        (setsockopt(server_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "master socket for worker setsockopt failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -188,9 +192,9 @@ _Noreturn void worker_connections_server() {
         check(
             (
                 worker_socket = accept(
-                server_socket,
-                (SA*)&worker_address,
-                (socklen_t*) &address_size
+                    server_socket,
+                    (SA*)&worker_address,
+                    (socklen_t*) &address_size
                 )
             ),
             "Accept failed!"
@@ -212,9 +216,10 @@ _Noreturn void worker_connections_server() {
 _Noreturn void client_connections_server() {
     int server_socket, client_socket, address_size;
     SA_IN server_address, client_address;
+    struct sctp_initmsg initmsg;
 
     // Create threads to handle connections
-    for (int i = 0; i < THREAD_POOL_SIZE; i++) {
+    for (int i = 0; i < CLIENT_THREAD_POOL_SIZE; i++) {
         pthread_create(
             &clients_thread_pool[i],
             NULL,
@@ -224,21 +229,17 @@ _Noreturn void client_connections_server() {
     }
 
     check(
-        (server_socket = socket(AF_INET, SOCK_STREAM, 0)),
-        "Failed to create socket!"
+        (server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
+        "Failed to create client socket!"
     );
-    int opt = 1;
+    
+    memset (&initmsg, 0, sizeof(initmsg));
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
-        (
-                setsockopt(
-                    server_socket,
-                    SOL_SOCKET,
-                    SO_REUSEADDR | SO_REUSEPORT,
-                    &opt,
-                    sizeof(opt)
-                )
-            ),
-        "setsockopt(SO_REUSEADDR) failed"
+        (setsockopt(server_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
+        "master socket for clients setsockopt failed"
     );
 
     memset(&server_address, 0, sizeof(server_address));
@@ -265,14 +266,16 @@ _Noreturn void client_connections_server() {
         address_size = sizeof(SA_IN);
 
         check(
-            (client_socket = accept(
-                server_socket,
-                (SA*)&client_address,
-                (socklen_t*) &address_size
-            )
-        ),
+            (
+                client_socket = accept(
+                    server_socket,
+                    (SA*)&client_address,
+                    (socklen_t*) &address_size
+                )
+            ),
             "Accept failed!"
         );
+        printf("Accepted client connection\n");
 
         // Queue connection so that a client thread can grab it
         int *pclient = malloc(sizeof(int));

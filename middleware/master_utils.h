@@ -3,6 +3,7 @@
 
 #include "threading_utils.h"
 #include "worker_utils.h"
+#include <netinet/sctp.h>
 
 _Noreturn void worker_connections_server();
 _Noreturn void client_connections_server();
