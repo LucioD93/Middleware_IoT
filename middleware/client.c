@@ -70,6 +70,10 @@ int main(int argc, char *argv[]) {
     
     pthread_t clients_thread_pool[number_of_requests];
     client_args *args_for_client[number_of_requests];
+
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     for (int i = 0; i < number_of_requests; i++) {
         args_for_client[i] = malloc(sizeof(client_args));
         args_for_client[i]->request_type = request_type;
@@ -86,4 +90,9 @@ int main(int argc, char *argv[]) {
         pthread_join(clients_thread_pool[i], NULL);
         free(args_for_client[i]);
     }
+
+    gettimeofday(&end, NULL);
+    float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
+    printf("Total time taken: %f\n",delta);
+
 }

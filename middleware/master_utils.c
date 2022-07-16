@@ -86,14 +86,13 @@ void *handle_client_connection(void* p_client_socket) {
     SA_IN client_address;
     int len;
     len = sizeof(client_address);
-    // check(
-    //     getpeername(client_socket, (SA *)&client_address, &len),
-    //     "Failed getpeername"
-    // );
+    check(
+        getpeername(client_socket, (SA *)&client_address, &len),
+        "Failed getpeername"
+    );
 
     char request_representation[MAX_LINE];
     strcpy(request_representation, inet_ntoa(client_address.sin_addr));
-    strcpy(request_representation, "127.0.0.1");
     strcat(request_representation, " | ");
     strcat(request_representation, buffer);
     int sendbytes = 26;

@@ -17,3 +17,8 @@ middleware/client
 .devcontainer/devcontainer.json
 
 .vscode/
+deployment/*.tfvars
+deployment/.terraform/providers/*
+deployment/terraform.tfstate
+deployment/terraform.tfstate.backup
+middleware/.env
