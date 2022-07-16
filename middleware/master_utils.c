@@ -6,7 +6,8 @@ pthread_cond_t worker_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
 pthread_t clients_thread_pool[CLIENT_THREAD_POOL_SIZE];
 pthread_mutex_t client_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
+// pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
+sem_t sem_client_queue;
 
 pthread_mutex_t worker_selection_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -54,6 +55,7 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
 
 
 void *handle_client_connection(void* p_client_socket) {
+    printf("Handling client\n");
     int client_socket = *((int*)p_client_socket);
     free(p_client_socket);
     char buffer[BUFFER_SIZE];
@@ -84,14 +86,14 @@ void *handle_client_connection(void* p_client_socket) {
     SA_IN client_address;
     int len;
     len = sizeof(client_address);
-    printf("Getpeername %p\n", &client_socket);
-    check(
-        getpeername(client_socket, (SA *)&client_address, &len),
-        "Failed getpeername"
-    );
+    // check(
+    //     getpeername(client_socket, (SA *)&client_address, &len),
+    //     "Failed getpeername"
+    // );
 
     char request_representation[MAX_LINE];
     strcpy(request_representation, inet_ntoa(client_address.sin_addr));
+    strcpy(request_representation, "127.0.0.1");
     strcat(request_representation, " | ");
     strcat(request_representation, buffer);
     int sendbytes = 26;
@@ -123,8 +125,10 @@ _Noreturn void * worker_connection_thread_function() {
 
 _Noreturn void * client_connection_thread_function() {
     while (true) {
+        sem_wait(&sem_client_queue);
         pthread_mutex_lock(&client_pool_mutex);
-        pthread_cond_wait(&client_pool_condition_var, &client_pool_mutex);
+        // pthread_cond_wait(&client_pool_condition_var, &client_pool_mutex);
+        printf("Dequeued client connection\n");
         int *p_client = dequeue_client_connection();
         pthread_mutex_unlock(&client_pool_mutex);
         if (p_client != NULL) {
@@ -156,8 +160,8 @@ _Noreturn void worker_connections_server() {
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 5;
-    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_num_ostreams = 64;
+    initmsg.sinit_max_instreams = 64;
     initmsg.sinit_max_attempts = 4;
     check(
         (setsockopt(server_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
@@ -214,9 +218,13 @@ _Noreturn void worker_connections_server() {
 
 
 _Noreturn void client_connections_server() {
+    sem_init(&sem_client_queue, 0, 0);
     int server_socket, client_socket, address_size;
     SA_IN server_address, client_address;
     struct sctp_initmsg initmsg;
+
+    fd_set socket_set, ready_socket_set;
+    int client_sockets[30], max_clients = 30, activity, max_socket, socket_descriptor;
 
     // Create threads to handle connections
     for (int i = 0; i < CLIENT_THREAD_POOL_SIZE; i++) {
@@ -261,30 +269,49 @@ _Noreturn void client_connections_server() {
         "Listen failed!"
     );
 
+    address_size = sizeof(SA_IN);
+    for (int i = 0; i < max_clients; i++) {
+        client_sockets[i] = -1;
+    }
+    
+    FD_ZERO(&socket_set);
+    FD_SET(server_socket, &socket_set);
+
     while(true) {
         // wait for and accept an incoming connection
-        address_size = sizeof(SA_IN);
 
-        check(
-            (
-                client_socket = accept(
-                    server_socket,
-                    (SA*)&client_address,
-                    (socklen_t*) &address_size
-                )
-            ),
-            "Accept failed!"
-        );
-        printf("Accepted client connection\n");
+        ready_socket_set = socket_set;
+        check(select(FD_SETSIZE, &ready_socket_set, NULL, NULL, NULL), "Failed select");
 
-        // Queue connection so that a client thread can grab it
-        int *pclient = malloc(sizeof(int));
-        *pclient = client_socket;
+        for (int i = 0; i < FD_SETSIZE; i++) {
+            if (FD_ISSET(i, &ready_socket_set)) {
+                if (i == server_socket) {
+                    check(
+                        (
+                            client_socket = accept(
+                                server_socket,
+                                (SA*)&client_address,
+                                (socklen_t*) &address_size
+                            )
+                        ),
+                        "Accept failed!"
+                    );
 
-        // Prevent race condition
-        pthread_mutex_lock(&client_pool_mutex);
-        enqueue_client_connection(pclient);
-        pthread_cond_signal(&client_pool_condition_var);
-        pthread_mutex_unlock(&client_pool_mutex);
+
+                    // Queue connection so that a client thread can grab it
+                    int *pclient = malloc(sizeof(int));
+                    *pclient = client_socket;
+
+                    // Prevent race condition
+                    pthread_mutex_lock(&client_pool_mutex);
+                    enqueue_client_connection(pclient);
+                    printf("Queued client connection\n");
+                    // pthread_cond_signal(&client_pool_condition_var);
+                    sem_post(&sem_client_queue);
+                    pthread_mutex_unlock(&client_pool_mutex);
+                }
+            }
+            
+        }
     }
 }

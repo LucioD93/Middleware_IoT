@@ -17,7 +17,7 @@
 
 #define BUFFER_SIZE 4096
 #define SOCKET_ERROR (-1)
-#define SERVER_BACKLOG 10
+#define SERVER_BACKLOG 5000
 
 int check(int exp, const char *msg);
 

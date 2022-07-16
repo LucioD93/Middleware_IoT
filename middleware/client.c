@@ -24,7 +24,15 @@ void *client_thread_function(void *args) {
     client_args actual_args = *((client_args *)args);
     int request_type = actual_args.request_type;
     char *master_server_address = actual_args.master_server_address;
+    
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+    
     client_function(request_type, master_server_address);
+    
+    gettimeofday(&end, NULL);
+    float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
+    printf("Time taken: %f\n",delta);
 }
 
 int main(int argc, char *argv[]) {

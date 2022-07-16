@@ -6,7 +6,7 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     SA_IN worker_address;
 
     check(
-        listen(server_socket, SERVER_BACKLOG),
+        listen(server_socket, 5),
         "Listen failed!"
     );
 
@@ -35,7 +35,6 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
     }
 
     if (request_type == WORD_PROCESSING_REQUEST) {
-        printf("Receiving text file back\n");
         char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
         generate_uuid(uuid);
         sprintf(filename, "output-%s.txt", uuid);
@@ -77,8 +76,6 @@ void client_function(
     if (request_type == 7) {
         request_type = rand() % 6 + 1;
     }
-
-    printf("Starting client with request type %d\n", request_type);
 
     char filename[MAX_LINE];
     switch(request_type) {
@@ -139,9 +136,9 @@ void client_function(
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 5;
-    initmsg.sinit_max_instreams = 5;
-    initmsg.sinit_max_attempts = 4;
+    initmsg.sinit_num_ostreams = 2000;
+    initmsg.sinit_max_instreams = 2000;
+    initmsg.sinit_max_attempts = 20;
     check(
         (setsockopt(master_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "client socket for master setsockopts failed"
@@ -169,9 +166,8 @@ void client_function(
         "Socket write failed"
     );
 
-    check(close(master_socket), "Closing socket to Master Failed");
+    check(close(master_socket), "Closing socket to master Failed");
     worker_connection_function(request_type, filename, worker_socket);
 
     fflush(stdout);
-    // exit(0);
 }

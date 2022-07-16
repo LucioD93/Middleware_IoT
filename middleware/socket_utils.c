@@ -2,6 +2,8 @@
 
 
 void send_text_file_over_socket(char filename[BUFFER_SIZE], int socket) {
+    time_t start, end;
+    time(&start);
     char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "r");
@@ -21,10 +23,14 @@ void send_text_file_over_socket(char filename[BUFFER_SIZE], int socket) {
         "ERROR: File sending failed!\n"
     );
     fflush(stdout);
+    double time_taken = end - start;
+    // printf("Sended text file-->%f\n", time_taken);
 }
 
 
 void send_image_file_over_socket(char filename[BUFFER_SIZE], int socket) {
+    time_t start, end;
+    time(&start);
     char data[MAX_LINE] = {0};
     FILE *file;
     file = fopen(filename, "rb");
@@ -45,10 +51,15 @@ void send_image_file_over_socket(char filename[BUFFER_SIZE], int socket) {
         "ERROR: File sending failed!\n"
     );
     fflush(stdout);
+    time(&end);
+    double time_taken = end - start;
+    // printf("Sended image file-->%f\n", time_taken);
 }
 
 
 void receive_text_file_over_socket(char filename[MAX_LINE], int socket) {
+    time_t start, end;
+    time(&start);
     FILE * file;
     file = fopen(filename, "w");
     char buffer[MAX_LINE] = {0};
@@ -64,10 +75,14 @@ void receive_text_file_over_socket(char filename[MAX_LINE], int socket) {
         memset(buffer, 0, MAX_LINE);
     }
     fclose(file);
+    double time_taken = end - start;
+    // printf("Received text file-->%f\n", time_taken);
 }
 
 
 void receive_image_file_over_socket(char filename[MAX_LINE], int socket) {
+    time_t start, end;
+    time(&start);
     FILE * file;
     file = fopen(filename, "wb");
     char buffer[MAX_LINE] = {0};
@@ -92,4 +107,6 @@ void receive_image_file_over_socket(char filename[MAX_LINE], int socket) {
         memset(buffer, 0, MAX_LINE);
     }
     fclose(file);
+    double time_taken = end - start;
+    // printf("Received image file-->%f\n", time_taken);
 }

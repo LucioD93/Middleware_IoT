@@ -106,7 +106,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
             get_random_city(send_line);
         }
 
-        send_bytes = strlen(send_line);
+        send_bytes = strlen(send_line) + 1;
         check(
             (write(client_socket, &send_line, send_bytes) != send_bytes),
             "Socket write failed"
@@ -114,7 +114,6 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
 
     check(close(client_socket), "Socket closing Failed");
-    printf("Finished request %d (%s:%d)\n", request_type, client_ip, client_port);
 }
 
 
