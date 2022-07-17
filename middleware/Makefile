@@ -7,10 +7,14 @@ OBJ_CLIENT = client.o metadata_utils.o threading_utils.o socket_utils.o client_u
 %.o: %.c
 	$(CC) -c -o $@ $< $(CFLAGS)
 
+all: master worker client
+
 clean:
 	rm -f *.o
 	rm -f master
 	rm -f worker
+	rm -f temp-*
+	rm output-*
 
 worker: $(OBJ_WORKER)
 	$(CC) -o $@ $^ $(CFLAGS)
@@ -24,4 +28,3 @@ client: $(OBJ_CLIENT)
 bash:
 	bash
 
-all: master worker client

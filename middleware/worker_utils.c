@@ -46,9 +46,9 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 5;
-    initmsg.sinit_max_instreams = 5;
-    initmsg.sinit_max_attempts = 4;
+    initmsg.sinit_num_ostreams = 2048;
+    initmsg.sinit_max_instreams = 2048;
+    initmsg.sinit_max_attempts = 20;
     check(
         (setsockopt(client_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "worker socket to master setsockopt failed"
@@ -92,10 +92,8 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     }
 
     if (request_type == IMAGE_PROCESSING_REQUEST) {
-        // char filename[MAX_LINE] = "worker.jpg";
         send_image_file_over_socket(filename, client_socket);
     } else if (request_type == WORD_PROCESSING_REQUEST) {
-        // char filename[MAX_LINE] = "worker.txt";
         send_text_file_over_socket(filename, client_socket);
     } else {
         if (request_type == WEB_REQUEST) {

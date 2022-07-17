@@ -155,7 +155,7 @@ int get_max_tasks(Resource server) {
 
     int max_value = get_max_task_unbound(max_server);
     int server_value = get_max_task_unbound(server);
-    int result = round(server_value * acosh(max_value * THREAD_POOL_SIZE));
+    int result = round(server_value * acosh(max_value * 100000));
 
     return result;
 }
@@ -415,11 +415,15 @@ void *sleeper_function(void *args) {
 metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
-    float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
-    float current_apc;
+    // float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
+    int min_time = estimate_time_for_request_type(request_type, metadata_head->worker_metadata->resources);
+    // float current_apc;
+    int current_time;
     while (current_node != NULL) {
-        current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
-        if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata)) {
+        // current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
+        current_time = estimate_time_for_request_type(request_type, current_node->worker_metadata->resources);
+        // if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata)) {
+        if (current_time <= min_time && can_resource_process_request(current_node->worker_metadata)) {
             max_node = current_node;
         }
         current_node = current_node->next;
@@ -431,7 +435,8 @@ metadata_node *select_worker(int request_type) {
     max_node->worker_metadata->resources.estimated_tasks = max_node->worker_metadata->resources.estimated_tasks + 1;
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
     args->request_type = request_type;
-    args->milliseconds = estimate_time_for_request_type(request_type, max_node->worker_metadata->resources);
+    // args->milliseconds = estimate_time_for_request_type(request_type, max_node->worker_metadata->resources);
+    args->milliseconds = min_time;
     pthread_t sleep_thread;
     pthread_create(
         &sleep_thread,

@@ -6,7 +6,6 @@ pthread_cond_t worker_pool_condition_var = PTHREAD_COND_INITIALIZER;
 
 pthread_t clients_thread_pool[CLIENT_THREAD_POOL_SIZE];
 pthread_mutex_t client_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
-// pthread_cond_t client_pool_condition_var = PTHREAD_COND_INITIALIZER;
 sem_t sem_client_queue;
 
 pthread_mutex_t worker_selection_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -29,11 +28,6 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             message_size += bytes_read;
             if(message_size > BUFFER_SIZE - 1 || buffer[message_size - 1] == 0) break;
         }
-        // if(strlen(buffer) == 0) {
-        //     // Bad message. Close connection
-        //     check((close(worker_socket)), "Worker socket closing failed!");
-        //     remove_from_list(uuid);
-        // }
         buffer[message_size - 1] = 0; // null terminate
         Metadata worker_metadata = str_to_metadata(buffer);
 
@@ -55,7 +49,6 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
 
 
 void *handle_client_connection(void* p_client_socket) {
-    printf("Handling client\n");
     int client_socket = *((int*)p_client_socket);
     free(p_client_socket);
     char buffer[BUFFER_SIZE];
@@ -93,6 +86,7 @@ void *handle_client_connection(void* p_client_socket) {
 
     char request_representation[MAX_LINE];
     strcpy(request_representation, inet_ntoa(client_address.sin_addr));
+    // strcpy(request_representation, "127.0.0.1");
     strcat(request_representation, " | ");
     strcat(request_representation, buffer);
     int sendbytes = 26;
@@ -126,8 +120,6 @@ _Noreturn void * client_connection_thread_function() {
     while (true) {
         sem_wait(&sem_client_queue);
         pthread_mutex_lock(&client_pool_mutex);
-        // pthread_cond_wait(&client_pool_condition_var, &client_pool_mutex);
-        printf("Dequeued client connection\n");
         int *p_client = dequeue_client_connection();
         pthread_mutex_unlock(&client_pool_mutex);
         if (p_client != NULL) {
@@ -159,9 +151,9 @@ _Noreturn void worker_connections_server() {
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 64;
-    initmsg.sinit_max_instreams = 64;
-    initmsg.sinit_max_attempts = 4;
+    initmsg.sinit_num_ostreams = 2048;
+    initmsg.sinit_max_instreams = 2048;
+    initmsg.sinit_max_attempts = 20;
     check(
         (setsockopt(server_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "master socket for worker setsockopt failed"
@@ -241,9 +233,9 @@ _Noreturn void client_connections_server() {
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 5;
-    initmsg.sinit_max_instreams = 5;
-    initmsg.sinit_max_attempts = 4;
+    initmsg.sinit_num_ostreams = 2048;
+    initmsg.sinit_max_instreams = 2048;
+    initmsg.sinit_max_attempts = 20;
     check(
         (setsockopt(server_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "master socket for clients setsockopt failed"
@@ -304,8 +296,6 @@ _Noreturn void client_connections_server() {
                     // Prevent race condition
                     pthread_mutex_lock(&client_pool_mutex);
                     enqueue_client_connection(pclient);
-                    printf("Queued client connection\n");
-                    // pthread_cond_signal(&client_pool_condition_var);
                     sem_post(&sem_client_queue);
                     pthread_mutex_unlock(&client_pool_mutex);
                 }
