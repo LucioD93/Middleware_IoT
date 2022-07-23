@@ -284,6 +284,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
             current->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
             current->worker_metadata->resources.assigned_tasks = worker_metadata.resources.assigned_tasks;
             current->worker_metadata->resources.estimated_tasks = worker_metadata.resources.assigned_tasks;
+            current->worker_metadata->resources.network_delay = worker_metadata.resources.network_delay;
             return;
         }
         current = current->next;
@@ -465,7 +466,7 @@ void print_metadata(Metadata metadata) {
 }
 
 
-void show_list() {
+void show_worker_list() {
     printf("Metadata list\n------------------\n");
     metadata_node *node = metadata_head;
     while (node != NULL) {

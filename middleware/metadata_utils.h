@@ -50,7 +50,7 @@ Metadata str_to_metadata(const char *str);
 void add_to_list(Metadata worker_metadata, int worker_socket);
 void print_metadata(Metadata metadata);
 void remove_from_list(char* uuid);
-void show_list();
+void show_worker_list();
 
 metadata_node *select_worker(int request_type);
 long long milliseconds_since_epoch();

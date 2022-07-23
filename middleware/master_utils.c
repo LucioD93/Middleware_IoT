@@ -41,6 +41,7 @@ _Noreturn void * handle_worker_connection(void* p_worker_socket) {
             pthread_mutex_lock(&worker_pool_mutex);
             add_to_list(worker_metadata, worker_socket);
             pthread_mutex_unlock(&worker_pool_mutex);
+            show_worker_list();
         }
 
         fflush(stdout);
