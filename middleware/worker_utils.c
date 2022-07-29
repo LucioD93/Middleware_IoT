@@ -46,9 +46,9 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 2048;
-    initmsg.sinit_max_instreams = 2048;
-    initmsg.sinit_max_attempts = 20;
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
         (setsockopt(client_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "worker socket to master setsockopt failed"
@@ -176,7 +176,6 @@ _Noreturn void master_worker_server(void *args) {
             if(message_size > 26 || buffer[message_size - 1] == 0) break;
         }
         buffer[message_size - 1] = 0; // null terminate
-        printf("Worker got %s (%ld)\n", buffer, message_size);
 
         char *client_ip = malloc(15);
         int request_type, client_port;

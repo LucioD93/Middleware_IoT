@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <getopt.h>
 #include <netinet/sctp.h>
+#include <float.h>
 #include "constants.h"
 #include "socket_utils.h"
 #include "threading_utils.h"

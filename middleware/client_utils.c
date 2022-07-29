@@ -39,13 +39,13 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
         generate_uuid(uuid);
         sprintf(filename, "output-%s.txt", uuid);
         receive_text_file_over_socket(filename, worker_socket);
-        printf("Response from worker: |%s|\n", filename);
+        // printf("Response from worker: |%s|\n", filename);
     } else if (request_type == IMAGE_PROCESSING_REQUEST) {
         char *uuid = malloc(sizeof(char)*UUID_STR_LEN);
         generate_uuid(uuid);
         sprintf(filename, "output-%s.jpg", uuid);
         receive_image_file_over_socket(filename, worker_socket);
-        printf("Response from worker: |%s|\n", filename);
+        // printf("Response from worker: |%s|\n", filename);
     } else {
         char buffer[BUFFER_SIZE];
         size_t bytes_read;
@@ -62,7 +62,7 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
         }
         buffer[message_size - 1] = 0; // null terminate
 
-        printf("Response from worker: |%s|\n", buffer);
+        // printf("Response from worker: |%s|\n", buffer);
     }
 
     check(close(server_socket), "Socket closing Failed");
@@ -100,9 +100,9 @@ void client_function(
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 2048;
-    initmsg.sinit_max_instreams = 2048;
-    initmsg.sinit_max_attempts = 20;
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
         (setsockopt(worker_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "client socket for worker setsockopt failed"
@@ -134,15 +134,7 @@ void client_function(
         (master_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
         "Failed to create client socket!"
     );
-    
-    memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 2048;
-    initmsg.sinit_max_instreams = 2048;
-    initmsg.sinit_max_attempts = 20;
-    check(
-        (setsockopt(master_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
-        "client socket for master setsockopts failed"
-    );
+
 
     memset(&client_address, 0, sizeof(client_address));
     client_address.sin_family = AF_INET;

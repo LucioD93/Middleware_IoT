@@ -417,7 +417,7 @@ metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
     // float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
-    int min_time = estimate_time_for_request_type(request_type, metadata_head->worker_metadata->resources);
+    int min_time = INT_MAX;
     // float current_apc;
     int current_time;
     while (current_node != NULL) {

@@ -35,7 +35,7 @@ locals {
   // Droplet sizes
   small_droplet_size  = "s-1vcpu-2gb"
   medium_droplet_size = "s-8vcpu-16gb"
-  big_droplet_size    = "c-8"
+  large_droplet_size  = "c-8"
 
   tem_droplet_size = "c-4"
 }

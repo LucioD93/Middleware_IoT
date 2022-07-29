@@ -3,7 +3,7 @@ resource "digitalocean_droplet" "master_sf" {
   image      = local.ubuntu_image
   name       = "SanFrancisco-master"
   region     = local.san_francisco
-  size       = local.tem_droplet_size
+  size       = local.medium_droplet_size
   ssh_keys   = [digitalocean_ssh_key.default.fingerprint]
   tags       = [local.master_server_tag]
   monitoring = true
@@ -15,7 +15,7 @@ resource "digitalocean_droplet" "client_ny" {
   image      = local.ubuntu_image
   name       = "NewYork-client"
   region     = local.new_york
-  size       = local.tem_droplet_size
+  size       = local.large_droplet_size
   ssh_keys   = [digitalocean_ssh_key.default.fingerprint]
   tags       = [local.client_server_tag]
   monitoring = true

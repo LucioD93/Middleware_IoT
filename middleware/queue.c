@@ -52,6 +52,7 @@ int* dequeue_worker_connection() {
     node_t *temp = dequeue(&worker_queue_head, &worker_queue_tail);
     if (temp == NULL) return NULL;
     int* socket_descriptor = temp->socket_descriptor;
+    free(temp);
     return  socket_descriptor;
 }
 
@@ -66,6 +67,7 @@ int* dequeue_client_connection() {
     node_t *temp = dequeue(&client_queue_head, &client_queue_tail);
     if (temp == NULL) return NULL;
     int* socket_descriptor = temp->socket_descriptor;
+    free(temp);
     return  socket_descriptor;
 }
 
@@ -93,5 +95,6 @@ node_t* dequeue_master_connection() {
     result->connection->client_port = temp->connection->client_port;
     result->connection->client_ip = malloc(15);
     strcpy(result->connection->client_ip, temp->connection->client_ip);
+    free(temp);
     return result;
 }

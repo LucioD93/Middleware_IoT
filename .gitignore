@@ -22,3 +22,4 @@ deployment/.terraform/providers/*
 deployment/terraform.tfstate
 deployment/terraform.tfstate.backup
 middleware/.env
+*/logs*

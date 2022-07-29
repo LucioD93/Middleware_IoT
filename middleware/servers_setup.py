@@ -10,6 +10,7 @@ from ssh import (
     san_francisco_master_ip,
     new_york_client_ip,
     frankfurt_remote_worker_ip,
+    singapore_remote_worker_ip,
 )
 
 logger = logging.getLogger()
@@ -22,14 +23,16 @@ def client_setup(host_url: str, user = "root"):
             scp.put(".env", ".env")
             scp.put("set_env.sh", "set_env.sh")
             scp.put("client", "client")
-            # scp.put("client.jpg", "client.jpg")
-            # scp.put("client.txt", "client.txt")
+            scp.put("run_tests_client.sh", "run_tests_client.sh")
+            scp.put("client.jpg", "client.jpg")
+            scp.put("client.txt", "client.txt")
 
 
 def master_setup(host_url: str, user = "root"):
     print(f"Setting up master {host_url}")
     with ssh_connection(host_url) as ssh:
         with SCPClient(ssh.get_transport()) as scp:
+            scp.put("start_master.sh", "start_master.sh")
             scp.put(".env", ".env")
             scp.put("set_env.sh", "set_env.sh")
             scp.put("master", "master")
@@ -39,6 +42,7 @@ def worker_setup(host_url: str, user = "root"):
     print(f"Setting up worker {host_url}")
     with ssh_connection(host_url) as ssh:
         with SCPClient(ssh.get_transport()) as scp:
+            scp.put("start_worker.sh", "start_worker.sh")
             scp.put(".env", ".env")
             scp.put("set_env.sh", "set_env.sh")
             scp.put("worker", "worker")
@@ -50,3 +54,4 @@ if __name__ == "__main__":
     master_setup(san_francisco_master_ip)
     worker_setup(san_francisco_local_worker_ip)
     worker_setup(frankfurt_remote_worker_ip)
+    worker_setup(singapore_remote_worker_ip)

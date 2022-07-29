@@ -32,7 +32,10 @@ void *client_thread_function(void *args) {
     
     gettimeofday(&end, NULL);
     float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
-    printf("Time taken: %f\n",delta);
+    printf("%f\n",delta);
+    float *time = (float *)malloc(sizeof(float));
+    *time = delta;
+    return time;
 }
 
 int main(int argc, char *argv[]) {
@@ -71,6 +74,8 @@ int main(int argc, char *argv[]) {
     pthread_t clients_thread_pool[number_of_requests];
     client_args *args_for_client[number_of_requests];
 
+    float *times[number_of_requests];
+
     struct timeval start, end;
     gettimeofday(&start, NULL);
 
@@ -87,7 +92,7 @@ int main(int argc, char *argv[]) {
     }
 
     for (int i = 0; i < number_of_requests; i++) {
-        pthread_join(clients_thread_pool[i], NULL);
+        pthread_join(clients_thread_pool[i], (void *)&times[i]);
         free(args_for_client[i]);
     }
 
@@ -95,4 +100,19 @@ int main(int argc, char *argv[]) {
     float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
     printf("Total time taken: %f\n",delta);
 
+    float sum = 0;
+    float min = FLT_MAX;
+    float max = FLT_MIN;
+    for (int i = 0; i < number_of_requests; i++) {
+        if (*times[i] < min) {
+            min = *times[i];
+        }
+        if (*times[i] > max) {
+            max = *times[i];
+        }
+        sum += *times[i];
+    }
+    float average = sum / number_of_requests;
+
+    printf("Min: %9.6f\nMax: %9.6f\nAverage: %9.6f\n\n", min, max, average);
 }

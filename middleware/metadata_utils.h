@@ -8,6 +8,7 @@
 #include <math.h>
 #include <uuid/uuid.h>
 #include <time.h>
+#include <limits.h>
 #include <pthread.h>
 #include "constants.h"
 

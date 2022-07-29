@@ -9,14 +9,11 @@ from paramiko import SSHClient, AutoAddPolicy
 
 load_dotenv()
 
-san_francisco_master_ip = os.environ.get("SanFrancisco_master_IP")
-print("San Francisco master ip", san_francisco_master_ip)
-new_york_client_ip = os.environ.get("NewYork_client_IP")
-print("New Yor client ip", new_york_client_ip)
-frankfurt_remote_worker_ip = os.environ.get("Frankfurt_remote_worker_IP")
-print("Frankfurt worker ip", frankfurt_remote_worker_ip)
-san_francisco_local_worker_ip = os.environ.get("SanFrancisco_local_worker_IP")
-print("San Francisco worker ip", san_francisco_local_worker_ip)
+san_francisco_master_ip = os.environ.get("SanFrancisco_master_ip")
+new_york_client_ip = os.environ.get("NewYork_client_ip")
+frankfurt_remote_worker_ip = os.environ.get("Frankfurt_remote_worker_ip")
+san_francisco_local_worker_ip = os.environ.get("SanFrancisco_local_worker_ip")
+singapore_remote_worker_ip = os.environ.get("Singapore_remote_worker_ip")
 
 logger = logging.getLogger()
 
