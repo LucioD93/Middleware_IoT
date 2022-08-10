@@ -155,8 +155,8 @@ int get_max_tasks(Resource server) {
 
     int max_value = get_max_task_unbound(max_server);
     int server_value = get_max_task_unbound(server);
-    int result = round(server_value * acosh(max_value * 100000));
-
+    int average = 10;
+    int result = round(server_value * acosh(max_value * 100000) * average);
     return result;
 }
 
@@ -293,6 +293,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
 
     new_node->worker_metadata = malloc(sizeof(Metadata));
     strcpy(new_node->worker_metadata->uuid, worker_metadata.uuid);
+    check(pthread_mutex_init(&new_node->worker_selection_mutex, NULL), "Failed to create worker mutex");
     new_node->worker_metadata->resources.cpu = worker_metadata.resources.cpu;
     new_node->worker_metadata->resources.ram = worker_metadata.resources.ram;
     new_node->worker_metadata->resources.gpu = worker_metadata.resources.gpu;
@@ -397,11 +398,13 @@ int estimate_time_for_request_type(int request_type, Resource resource) {
     return result; 
 }
 
-
-void sleep_for_milliseconds(long milliseconds) {
-    long nanoseconds = milliseconds * 1000000L;
+void sleep_for_nanoseconds(long nanoseconds) {
     struct timespec reqDelay = {0, nanoseconds};
     nanosleep(&reqDelay, (struct timespec *) NULL);
+}
+
+void sleep_for_milliseconds(long milliseconds) {
+    sleep_for_nanoseconds(milliseconds * 1000000L);
 }
 
 
@@ -416,16 +419,13 @@ void *sleeper_function(void *args) {
 metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
-    // float max_apc = worker_apc_for_request_type(request_type, metadata_head->worker_metadata->resources);
     int min_time = INT_MAX;
-    // float current_apc;
     int current_time;
     while (current_node != NULL) {
-        // current_apc = worker_apc_for_request_type(request_type, current_node->worker_metadata->resources);
         current_time = estimate_time_for_request_type(request_type, current_node->worker_metadata->resources);
-        // if (current_apc >= max_apc && can_resource_process_request(current_node->worker_metadata)) {
-        if (current_time <= min_time && can_resource_process_request(current_node->worker_metadata)) {
+        if (current_time < min_time && can_resource_process_request(current_node->worker_metadata)) {
             max_node = current_node;
+            min_time = current_time;
         }
         current_node = current_node->next;
     }
@@ -436,7 +436,6 @@ metadata_node *select_worker(int request_type) {
     max_node->worker_metadata->resources.estimated_tasks = max_node->worker_metadata->resources.estimated_tasks + 1;
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
     args->request_type = request_type;
-    // args->milliseconds = estimate_time_for_request_type(request_type, max_node->worker_metadata->resources);
     args->milliseconds = min_time;
     pthread_t sleep_thread;
     pthread_create(

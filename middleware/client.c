@@ -32,7 +32,7 @@ void *client_thread_function(void *args) {
     
     gettimeofday(&end, NULL);
     float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
-    printf("%f\n",delta);
+    // printf("%f\n",delta);
     float *time = (float *)malloc(sizeof(float));
     *time = delta;
     return time;
@@ -89,6 +89,7 @@ int main(int argc, char *argv[]) {
             client_thread_function,
             args_for_client[i]
         );
+        sleep_for_nanoseconds(100);
     }
 
     for (int i = 0; i < number_of_requests; i++) {
@@ -115,4 +116,7 @@ int main(int argc, char *argv[]) {
     float average = sum / number_of_requests;
 
     printf("Min: %9.6f\nMax: %9.6f\nAverage: %9.6f\n\n", min, max, average);
+    for (int i = 0; i < number_of_requests; i++) {
+        free(times[i]);
+    }
 }

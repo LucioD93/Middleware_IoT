@@ -33,7 +33,7 @@ void get_random_city(char *city) {
 
 
 void *handle_master_connection(int request_type, char *client_ip, int client_port) {
-    printf("Worker started serving request %d %s:%d\n", request_type, client_ip, client_port);
+    // printf("Worker started serving request %d %s:%d\n", request_type, client_ip, client_port);
     // Connect to client socket
     int client_socket, send_bytes;
     SA_IN server_address;

@@ -10,6 +10,7 @@
 #include <time.h>
 #include <limits.h>
 #include <pthread.h>
+#include "threading_utils.h"
 #include "constants.h"
 
 typedef struct RS {
@@ -32,6 +33,7 @@ typedef struct list_node {
     struct list_node* next;
     int worker_socket;
     Metadata *worker_metadata;
+    pthread_mutex_t worker_selection_mutex;
 } metadata_node;
 
 typedef struct s_sleep_args {
@@ -56,6 +58,7 @@ void show_worker_list();
 metadata_node *select_worker(int request_type);
 long long milliseconds_since_epoch();
 
+void sleep_for_nanoseconds(long nanoseconds);
 void sleep_for_milliseconds(long milliseconds);
 
 #endif //MIDDLEWARE_METADATA_UTILS_H

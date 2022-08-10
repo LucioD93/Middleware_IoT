@@ -31,6 +31,7 @@ void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor, c
     *queue_tail = new_node;
 }
 
+
 node_t* dequeue(node_t** queue_head, node_t** queue_tail) {
     if (queue_head == NULL) {
         return NULL;
@@ -47,6 +48,7 @@ void enqueue_worker_connection(int *socket_descriptor) {
     enqueue(&worker_queue_head, &worker_queue_tail, socket_descriptor, NULL);
 }
 
+
 // Get first node in the queue, return NULL if empty
 int* dequeue_worker_connection() {
     node_t *temp = dequeue(&worker_queue_head, &worker_queue_tail);
@@ -61,6 +63,7 @@ int* dequeue_worker_connection() {
 void enqueue_client_connection(int *socket_descriptor) {
     enqueue(&client_queue_head, &client_queue_tail, socket_descriptor, NULL);
 }
+
 
 // Get first node in the queue, return NULL if empty
 int* dequeue_client_connection() {
@@ -83,6 +86,7 @@ void enqueue_master_connection(int *socket_descriptor, int request_type, char *c
     free(connection->client_ip);
     free(connection);
 }
+
 
 // Get first node in the queue, return NULL if empty
 node_t* dequeue_master_connection() {
