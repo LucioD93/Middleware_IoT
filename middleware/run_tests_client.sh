@@ -18,6 +18,6 @@ do
     do
         echo "Requests: $scenario type: $type"
         ./client -a $SanFrancisco_master_ip -r $type -n $scenario | tee logs/log-client-$scenario-$type.txt
-        sleep 5
+        sleep 1
     done
 done

@@ -6,5 +6,16 @@
             "binaryPath": "/code/master",
             "binaryArgs": []
         }
-    ]
+    ],
+    "files.associations": {
+        "*.html": "html",
+        "socket_utils.h": "c",
+        "worker_utils.h": "c",
+        "client_utils.h": "c",
+        "master_utils.h": "c",
+        "threading_utils.h": "c",
+        "constants.h": "c",
+        "metadata_utils.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "Enabled"
 }

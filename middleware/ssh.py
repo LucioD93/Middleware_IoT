@@ -24,5 +24,4 @@ def ssh_connection(host_url: str, user = "root"):
     ssh.set_missing_host_key_policy(AutoAddPolicy())
     ssh.connect(host_url, username=user)
     yield ssh
-    ssh.exec_command("ulimit -n 8192")
     ssh.close()
