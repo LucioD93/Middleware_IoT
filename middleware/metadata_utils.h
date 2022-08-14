@@ -38,7 +38,6 @@ typedef struct list_node {
 
 typedef struct s_sleep_args {
     int *tasks_tracker;
-    int request_type;
     int milliseconds;
 } sleep_args;
 

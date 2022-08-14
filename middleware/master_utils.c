@@ -72,7 +72,6 @@ void *handle_client_connection(void* p_client_socket) {
     while(true) {
         // pthread_mutex_lock(&worker_selection_mutex);
         selected_worker = select_worker(request_type);
-        printf("Assigned request %d to worker %s\n", request_type, selected_worker->worker_metadata->uuid);
         // pthread_mutex_unlock(&worker_selection_mutex);
         if (selected_worker != NULL) break;
         sleep_for_nanoseconds(50);

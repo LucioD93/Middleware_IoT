@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+from sys import argv
 import matplotlib.pyplot as plt
 from itertools import groupby
 import pandas as pd
@@ -62,12 +63,17 @@ def get_values(path):
     return data
 
 
-if __name__ == "__main__":
-    data = get_values("logs_1_millisecond_sleep")
+def construct_dataframe(folder: str):
+    data = get_values(folder)
     df = pd.DataFrame(data, columns = ['cantidad','medicion', 'tipo','tiempo'])
     df['cantidad'] = df['cantidad'].astype('int')
+    df['medicion'] = df['medicion'].astype('string')
+    df['tipo'] = df['tipo'].astype('int')
     df = df.set_index(['cantidad','medicion','tipo'])['tiempo'].unstack()
+    return df
 
+
+def plot_dataframe(df: pd.DataFrame):
     ax = df.plot(kind='bar')
     #Below 2 lines remove default labels
     ax.set_xticklabels('')
@@ -75,7 +81,16 @@ if __name__ == "__main__":
     ax.set_ylabel("Tiempo de respuesta en segundos")
     label_group_bar_table(ax, df)
 
-    # you may need these lines, if not working interactive
+    return ax
+
+
+if __name__ == "__main__":
+
+    folder = argv[1]
+
+    df = construct_dataframe(folder)
+    ax1 = plot_dataframe(df)
+
     plt.tight_layout()
     plt.grid(axis= 'y')
     plt.show()

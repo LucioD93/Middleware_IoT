@@ -152,11 +152,10 @@ int get_max_task_unbound(Resource server) {
 
 int get_max_tasks(Resource server) {
     Resource max_server = {10,10,10};
-
     int max_value = get_max_task_unbound(max_server);
     int server_value = get_max_task_unbound(server);
-    int average = 10;
-    int result = round(server_value * acosh(max_value * 100000) * average);
+    int average = round((server.cpu + server.ram + server.gpu) / 3);
+    int result = round(server_value * acosh(max_value * ACOSH_MODIFIER)) * average;
     return result;
 }
 
@@ -388,7 +387,7 @@ bool can_resource_process_request(Metadata *worker) {
 
 
 double modified_tanh(int r) {
-    return tanh(r * TANH_MODIFIER);
+    return tanh(r * TANH_MODIFIER)+1;
 }
 
 
@@ -399,8 +398,7 @@ int estimate_time_for_request_type(int request_type, Resource resource) {
 }
 
 void sleep_for_nanoseconds(long nanoseconds) {
-    struct timespec reqDelay = {0, nanoseconds};
-    nanosleep(&reqDelay, (struct timespec *) NULL);
+    nanosleep((const struct timespec[]){{0, nanoseconds}}, NULL);
 }
 
 void sleep_for_milliseconds(long milliseconds) {
@@ -420,12 +418,12 @@ metadata_node *select_worker(int request_type) {
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
     int min_time = INT_MAX;
-    int current_time;
+    int current_node_time;
     while (current_node != NULL) {
-        current_time = estimate_time_for_request_type(request_type, current_node->worker_metadata->resources);
-        if (current_time < min_time && can_resource_process_request(current_node->worker_metadata)) {
+        current_node_time = estimate_time_for_request_type(request_type, current_node->worker_metadata->resources);
+        if (current_node_time < min_time && can_resource_process_request(current_node->worker_metadata)) {
             max_node = current_node;
-            min_time = current_time;
+            min_time = current_node_time;
         }
         current_node = current_node->next;
     }
@@ -435,7 +433,6 @@ metadata_node *select_worker(int request_type) {
     sleep_args *args = malloc(sizeof(sleep_args));
     max_node->worker_metadata->resources.estimated_tasks = max_node->worker_metadata->resources.estimated_tasks + 1;
     args->tasks_tracker = &max_node->worker_metadata->resources.estimated_tasks;
-    args->request_type = request_type;
     args->milliseconds = min_time;
     pthread_t sleep_thread;
     pthread_create(
@@ -444,7 +441,6 @@ metadata_node *select_worker(int request_type) {
         sleeper_function,
         args
     );
-
     return max_node;
 }
 

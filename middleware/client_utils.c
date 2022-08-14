@@ -96,13 +96,13 @@ void client_function(
     // Open worker socket first to get the port that will be used
     check(
         (worker_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
-        "Failed to create client socket!"
+        "CLIENT: Failed to create worker socket!"
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 5;
-    initmsg.sinit_max_instreams = 5;
-    initmsg.sinit_max_attempts = 4;
+    initmsg.sinit_num_ostreams = 1024;
+    initmsg.sinit_max_instreams = 1024;
+    initmsg.sinit_max_attempts = 10;
     check(
         (setsockopt(worker_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "client socket for worker setsockopt failed"
@@ -132,7 +132,7 @@ void client_function(
 
     check(
         (master_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_SCTP)),
-        "Failed to create client socket!"
+        "CLIENT: Failed to create master socket!"
     );
 
 
