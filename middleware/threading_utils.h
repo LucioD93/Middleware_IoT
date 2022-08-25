@@ -11,6 +11,7 @@
 #include <limits.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <errno.h>
 #include "constants.h"
 #include "queue.h"
 #include "metadata_utils.h"

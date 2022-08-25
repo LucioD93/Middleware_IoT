@@ -30,7 +30,7 @@ def label_group_bar_table(ax, df):
         pos = 0
         for label, rpos in label_len(df.index, level):
             lxpos = (pos + .5 * rpos)*scale
-            ax.text(lxpos, ypos, label, ha='center', transform=ax.transAxes, fontsize=7 if label == 'promedio' else None)
+            ax.text(lxpos, ypos, label, ha='center', transform=ax.transAxes)
             add_line(ax, pos*scale, ypos)
             pos += rpos
         add_line(ax, pos*scale , ypos)
@@ -49,7 +49,7 @@ def get_values(path):
             with open(f"{path}/ny_client_logs/log-client-{number}-{type}.txt", "r") as log:
                 total_time_line = log.readline()
                 total_time_value = float(total_time_line.split(": ")[1].strip())
-                data.append([str(number), 'total', str(type), total_time_value])
+                # data.append([str(number), 'total', str(type), total_time_value])
                 min_time_line = log.readline()
                 min_time_value = float(min_time_line.split(": ")[1].strip())
                 data.append([str(number), 'min', str(type), min_time_value])
@@ -58,7 +58,7 @@ def get_values(path):
                 data.append([str(number), 'max', str(type), max_time_value])
                 average_time_line = log.readline()
                 average_time_value = float(average_time_line.split(": ")[1].strip())
-                data.append([str(number), 'promedio', str(type), average_time_value])
+                data.append([str(number), 'prom', str(type), average_time_value])
     
     return data
 
@@ -80,6 +80,8 @@ def plot_dataframe(df: pd.DataFrame):
     ax.set_xlabel('')
     ax.set_ylabel("Tiempo de respuesta en segundos")
     label_group_bar_table(ax, df)
+    ax.set_xlabel("Cantidad de peticiones enviadas", labelpad=75)
+
 
     return ax
 

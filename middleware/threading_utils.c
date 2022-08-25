@@ -3,6 +3,7 @@
 int check(int exp, const char *msg) {
     if (exp == SOCKET_ERROR) {
         perror(msg);
+        printf("ERROR: %d - %s\n", errno, strerror(errno));
         exit(1);
     }
     return exp;

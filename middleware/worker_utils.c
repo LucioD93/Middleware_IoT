@@ -46,9 +46,9 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 1024;
-    initmsg.sinit_max_instreams = 1024;
-    initmsg.sinit_max_attempts = 10;
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
         (setsockopt(client_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "worker socket to master setsockopt failed"
@@ -70,7 +70,7 @@ void *handle_master_connection(int request_type, char *client_ip, int client_por
             client_socket, (SA *)&server_address, sizeof(server_address)
         );
         if (exp != SOCKET_ERROR) break;
-        sleep_for_milliseconds(250 * i);
+        sleep_for_milliseconds(50 * i);
     }
     check(exp, "Connection to client failed");
 
@@ -119,11 +119,11 @@ _Noreturn void * master_connection_thread_function(void *arg) {
     int *tasks_tracker = arg;
     while (true) {
         // Semaphores!
-        sem_wait(&sem_producer);
+        // sem_wait(&sem_producer);
         pthread_mutex_lock(&master_pool_mutex);
         node_t *result = dequeue_master_connection();
         pthread_mutex_unlock(&master_pool_mutex);
-        sem_post(&sem_consumer);
+        // sem_post(&sem_consumer);
 
         if (result != NULL) {
             // There is a connection
@@ -187,11 +187,11 @@ _Noreturn void master_worker_server(void *args) {
         *p_client = worker_socket;
 
         // Prevent race condition with semaphores!
-        sem_wait(&sem_consumer);
+        // sem_wait(&sem_consumer);
         pthread_mutex_lock(&master_pool_mutex);
         enqueue_master_connection(p_client, request_type, client_ip, client_port);
+        // sem_post(&sem_producer);
         pthread_mutex_unlock(&master_pool_mutex);
-        sem_post(&sem_producer);
     }
 }
 

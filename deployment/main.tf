@@ -25,12 +25,14 @@ locals {
   worker_executable = "../middleware/worker"
 
   // Regions
-  new_york      = "nyc3"
+  new_york      = "nyc1"
   san_francisco = "sfo3"
   amsterdam     = "ams2"
   singapore     = "sgp1"
   london        = "lon1"
   frankfurt     = "fra1"
+  toronto       = "tor1"
+  bangalore     = "blr1"
 
   // Droplet sizes
   small_droplet_size  = "s-1vcpu-2gb"

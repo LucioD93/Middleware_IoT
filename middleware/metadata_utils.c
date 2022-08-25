@@ -154,8 +154,7 @@ int get_max_tasks(Resource server) {
     Resource max_server = {10,10,10};
     int max_value = get_max_task_unbound(max_server);
     int server_value = get_max_task_unbound(server);
-    int average = round((server.cpu + server.ram + server.gpu) / 3);
-    int result = round(server_value * acosh(max_value * ACOSH_MODIFIER)) * average;
+    int result = round(server_value * acosh(max_value * ACOSH_MODIFIER));
     return result;
 }
 
@@ -382,6 +381,8 @@ float worker_apc_for_request_type(int request_type, Resource worker) {
 
 
 bool can_resource_process_request(Metadata *worker) {
+    // printf("Check %d - %d - %d\n", worker->resources.estimated_tasks, worker->resources.max_tasks, worker->resources.cpu_usage);
+    return worker->resources.estimated_tasks < worker->resources.max_tasks;
     return worker->resources.estimated_tasks < worker->resources.max_tasks && worker->resources.cpu_usage < CPU_LOAD_THRESHOLD;
 }
 
@@ -394,6 +395,7 @@ double modified_tanh(int r) {
 int estimate_time_for_request_type(int request_type, Resource resource) {
     double p = PROCESSING_TIME*(2 - modified_tanh(worker_apc_for_request_type(request_type, resource)));
     int result = p + resource.network_delay * 2;
+    // printf("Estimated time for %d is %d\n", request_type, result);
     return result; 
 }
 
@@ -415,6 +417,7 @@ void *sleeper_function(void *args) {
 
 
 metadata_node *select_worker(int request_type) {
+    // return metadata_head;
     metadata_node *current_node = metadata_head;
     metadata_node *max_node = NULL;
     int min_time = INT_MAX;

@@ -17,7 +17,7 @@ do
     for type in "${requests_types[@]}"
     do
         echo "Requests: $scenario type: $type"
-        ./client -a $SanFrancisco_master_ip -r $type -n $scenario | tee logs/log-client-$scenario-$type.txt
+        ./client -a $sanfrancisco_master_ip -r $type -n $scenario | tee logs/log-client-$scenario-$type.txt
         sleep 1
     done
 done

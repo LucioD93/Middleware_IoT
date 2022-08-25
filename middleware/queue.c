@@ -1,4 +1,5 @@
 #include "queue.h"
+#include <stdio.h>
 
 node_t* worker_queue_head = NULL;
 node_t* worker_queue_tail = NULL;
@@ -33,7 +34,7 @@ void enqueue(node_t** queue_head, node_t** queue_tail, int *socket_descriptor, c
 
 
 node_t* dequeue(node_t** queue_head, node_t** queue_tail) {
-    if (queue_head == NULL) {
+    if (*queue_head == NULL) {
         return NULL;
     } else {
         node_t *result = *queue_head;

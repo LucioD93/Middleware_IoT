@@ -100,9 +100,9 @@ void client_function(
     );
     
     memset (&initmsg, 0, sizeof(initmsg));
-    initmsg.sinit_num_ostreams = 1024;
-    initmsg.sinit_max_instreams = 1024;
-    initmsg.sinit_max_attempts = 10;
+    initmsg.sinit_num_ostreams = 5;
+    initmsg.sinit_max_instreams = 5;
+    initmsg.sinit_max_attempts = 4;
     check(
         (setsockopt(worker_socket, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg))),
         "client socket for worker setsockopt failed"

@@ -89,7 +89,7 @@ int main(int argc, char *argv[]) {
             client_thread_function,
             args_for_client[i]
         );
-        sleep_for_nanoseconds(100);
+        sleep_for_nanoseconds(10);
     }
 
     for (int i = 0; i < number_of_requests; i++) {

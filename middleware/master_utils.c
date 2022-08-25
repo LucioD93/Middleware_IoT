@@ -77,15 +77,17 @@ void *handle_client_connection(void* p_client_socket) {
         sleep_for_nanoseconds(50);
     }
 
+    printf("Assigned request %d to worker %s\n", request_type, selected_worker->worker_metadata->uuid);
+
     SA_IN client_address;
     int len;
     len = sizeof(client_address);
+    char request_representation[MAX_LINE];
     check(
         getpeername(client_socket, (SA *)&client_address, &len),
         "Failed getpeername"
     );
 
-    char request_representation[MAX_LINE];
     strcpy(request_representation, inet_ntoa(client_address.sin_addr));
     // strcpy(request_representation, "127.0.0.1");
     strcat(request_representation, " | ");
