@@ -9,7 +9,7 @@ from paramiko import SSHClient, AutoAddPolicy
 
 load_dotenv()
 
-san_francisco_master_ip = os.environ.get("sanfrancisco_master_ip")
+master_ip = os.environ.get("master_ip")
 client_ip = os.environ.get("client_ip")
 frankfurt_remote_worker_ip = os.environ.get("frankfurt_remote_worker_ip")
 san_francisco_local_worker_ip = os.environ.get("sanfrancisco_local_worker_ip")

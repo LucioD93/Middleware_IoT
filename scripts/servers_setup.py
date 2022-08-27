@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import logging
 
 from scp import SCPClient
@@ -7,13 +8,18 @@ from scp import SCPClient
 from ssh import (
     ssh_connection,
     san_francisco_local_worker_ip,
-    san_francisco_master_ip,
+    master_ip,
     client_ip,
     frankfurt_remote_worker_ip,
     singapore_remote_worker_ip,
 )
 
+ROOT_DIR = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
+
 logger = logging.getLogger()
+
+def get_full_path(file: str, directory = "middleware"):
+    return os.path.join(ROOT_DIR, directory, file)
 
 
 def client_setup(host_url: str, user = "root"):
@@ -22,12 +28,12 @@ def client_setup(host_url: str, user = "root"):
         transport = ssh.get_transport()
         if transport:
             with SCPClient(transport) as scp:
-                scp.put(".env", ".env")
-                scp.put("set_env.sh", "set_env.sh")
-                scp.put("client", "client")
-                scp.put("run_tests_client.sh", "run_tests_client.sh")
-                scp.put("client.jpg", "client.jpg")
-                scp.put("client.txt", "client.txt")
+                scp.put(get_full_path("run_tests_client.sh", "scripts"), "run_tests_client.sh")
+                scp.put(get_full_path(".env", "scripts"), ".env")
+                scp.put(get_full_path("set_env.sh", "scripts"), "set_env.sh")
+                scp.put(get_full_path("client"), "client")
+                scp.put(get_full_path("client.jpg"), "client.jpg")
+                scp.put(get_full_path("client.txt"), "client.txt")
 
 
 def master_setup(host_url: str, user = "root"):
@@ -36,10 +42,10 @@ def master_setup(host_url: str, user = "root"):
         transport = ssh.get_transport()
         if transport:
             with SCPClient(transport) as scp:
-                scp.put("start_master.sh", "start_master.sh")
-                scp.put(".env", ".env")
-                scp.put("set_env.sh", "set_env.sh")
-                scp.put("master", "master")
+                scp.put(get_full_path("start_master.sh", "scripts"), "start_master.sh")
+                scp.put(get_full_path(".env", "scripts"), ".env")
+                scp.put(get_full_path("set_env.sh", "scripts"), "set_env.sh")
+                scp.put(get_full_path("master"), "master")
 
 
 def worker_setup(host_url: str, user = "root"):
@@ -48,15 +54,15 @@ def worker_setup(host_url: str, user = "root"):
         transport = ssh.get_transport()
         if transport:
             with SCPClient(transport) as scp:
-                scp.put("start_worker.sh", "start_worker.sh")
-                scp.put(".env", ".env")
-                scp.put("set_env.sh", "set_env.sh")
-                scp.put("worker", "worker")
+                scp.put(get_full_path("start_worker.sh", "scripts"), "start_worker.sh")
+                scp.put(get_full_path(".env", "scripts"), ".env")
+                scp.put(get_full_path("set_env.sh", "scripts"), "set_env.sh")
+                scp.put(get_full_path("worker"), "worker")
     ssh.close()
 
 
 if __name__ == "__main__":
-    masters = [san_francisco_master_ip]
+    masters = [master_ip]
     clients = [
         client_ip,
     ]

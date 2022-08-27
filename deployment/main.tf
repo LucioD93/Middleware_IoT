@@ -57,6 +57,7 @@ locals {
   bangalore     = "blr1"
 
   // Droplet sizes
+  master_droplet_size        = var.master_server_size
   local_worker_droplet_size  = "s-1vcpu-1gb"
   remote_worker_droplet_size = "s-1vcpu-2gb"
   medium_droplet_size        = "s-8vcpu-16gb"

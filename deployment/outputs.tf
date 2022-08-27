@@ -1,10 +1,10 @@
 ## Output master
-output "sanfrancisco_master_ip" {
-  value = digitalocean_droplet.master_sf.ipv4_address
+output "master_ip" {
+  value = digitalocean_droplet.master.ipv4_address
 }
 
-output "sanfrancisco_master_ssh" {
-  value = "root@${digitalocean_droplet.master_sf.ipv4_address}"
+output "master_ssh" {
+  value = "root@${digitalocean_droplet.master.ipv4_address}"
 }
 
 ## Output client

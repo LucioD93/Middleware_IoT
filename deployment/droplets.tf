@@ -1,9 +1,9 @@
 # # Master
-resource "digitalocean_droplet" "master_sf" {
+resource "digitalocean_droplet" "master" {
   image      = local.ubuntu_image
-  name       = "SanFrancisco-master"
+  name       = "Master"
   region     = local.san_francisco
-  size       = local.medium_droplet_size
+  size       = local.master_droplet_size
   ssh_keys   = [digitalocean_ssh_key.default.fingerprint]
   tags       = [local.master_server_tag]
   monitoring = true
