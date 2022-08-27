@@ -8,56 +8,13 @@ output "sanfrancisco_master_ssh" {
 }
 
 ## Output client
-# output "newyork_client_ip" {
-#   value = digitalocean_droplet.client_ny.ipv4_address
-# }
-
-# output "newyork_client_ssh" {
-#   value = "root@${digitalocean_droplet.client_ny.ipv4_address}"
-# }
-
-output "sanfrancisco_client_ip" {
-  value = digitalocean_droplet.client_sf.ipv4_address
+output "client_ip" {
+  value = digitalocean_droplet.client.ipv4_address
 }
 
-output "sanfrancisco_client_ssh" {
-  value = "root@${digitalocean_droplet.client_sf.ipv4_address}"
+output "client_ssh" {
+  value = "root@${digitalocean_droplet.client.ipv4_address}"
 }
-
-output "toronto_client_ip" {
-  value = digitalocean_droplet.client_tor.ipv4_address
-}
-output "toronto_client_ssh" {
-  value = "root@${digitalocean_droplet.client_tor.ipv4_address}"
-}
-
-# output "london_client_ip" {
-#   value = digitalocean_droplet.client_ln.ipv4_address
-# }
-# output "london_client_ssh" {
-#   value = "root@${digitalocean_droplet.client_ln.ipv4_address}"
-# }
-
-# output "amsterdam_client_ip" {
-#   value = digitalocean_droplet.client_ams.ipv4_address
-# }
-# output "amsterdam_client_ssh" {
-#   value = "root@${digitalocean_droplet.client_ams.ipv4_address}"
-# }
-
-# output "singapore_client_ip" {
-#   value = digitalocean_droplet.client_sg.ipv4_address
-# }
-# output "singapore_client_ssh" {
-#   value = "root@${digitalocean_droplet.client_sg.ipv4_address}"
-# }
-
-# output "bangalore_client_ip" {
-#   value = digitalocean_droplet.client_blr.ipv4_address
-# }
-# output "bangalore_client_ssh" {
-#   value = "root@${digitalocean_droplet.client_blr.ipv4_address}"
-# }
 
 ## Output workers
 # San Francisco

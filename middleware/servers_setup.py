@@ -8,14 +8,7 @@ from ssh import (
     ssh_connection,
     san_francisco_local_worker_ip,
     san_francisco_master_ip,
-    new_york_client_ip,
-    sanfrancisco_client_ip,
-    toronto_client_ip,
-    frankfurt_client_ip,
-    london_client_ip,
-    amsterdam_client_ip,
-    singapore_client_ip,
-    bangalore_client_ip,
+    client_ip,
     frankfurt_remote_worker_ip,
     singapore_remote_worker_ip,
 )
@@ -65,14 +58,7 @@ def worker_setup(host_url: str, user = "root"):
 if __name__ == "__main__":
     masters = [san_francisco_master_ip]
     clients = [
-        new_york_client_ip,
-        sanfrancisco_client_ip,
-        toronto_client_ip,
-        frankfurt_client_ip,
-        london_client_ip,
-        amsterdam_client_ip,
-        singapore_client_ip,
-        bangalore_client_ip,
+        client_ip,
     ]
     workers = [
         san_francisco_local_worker_ip,
