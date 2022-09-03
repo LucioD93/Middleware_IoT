@@ -142,9 +142,9 @@ int get_cpu_usage() {
 
 
 int get_max_task_unbound(Resource server) {
-    float cpu = server.cpu * ALPHA;
-    float ram = server.ram * BETA;
-    float gpu = server.gpu * GAMMA;
+    float cpu = server.cpu * ALPHA_CPU_WEIGHT;
+    float ram = server.ram * BETA_RAM_WEIGHT;
+    float gpu = server.gpu * GAMMA_GPU_WEIGHT;
 
     return round(cpu + ram + gpu);
 }
@@ -281,7 +281,7 @@ void add_to_list(Metadata worker_metadata, int worker_socket) {
         if (memcmp(current->worker_metadata->uuid, worker_metadata.uuid, UUID_STR_LEN) == 0) {
             current->worker_metadata->resources.cpu_usage = worker_metadata.resources.cpu_usage;
             current->worker_metadata->resources.assigned_tasks = worker_metadata.resources.assigned_tasks;
-            current->worker_metadata->resources.estimated_tasks = worker_metadata.resources.assigned_tasks;
+            // current->worker_metadata->resources.estimated_tasks = worker_metadata.resources.assigned_tasks;
             current->worker_metadata->resources.network_delay = worker_metadata.resources.network_delay;
             return;
         }
@@ -381,8 +381,6 @@ float worker_apc_for_request_type(int request_type, Resource worker) {
 
 
 bool can_resource_process_request(Metadata *worker) {
-    // printf("Check %d - %d - %d\n", worker->resources.estimated_tasks, worker->resources.max_tasks, worker->resources.cpu_usage);
-    return worker->resources.estimated_tasks < worker->resources.max_tasks;
     return worker->resources.estimated_tasks < worker->resources.max_tasks && worker->resources.cpu_usage < CPU_LOAD_THRESHOLD;
 }
 
@@ -395,7 +393,6 @@ double modified_tanh(int r) {
 int estimate_time_for_request_type(int request_type, Resource resource) {
     double p = PROCESSING_TIME*(2 - modified_tanh(worker_apc_for_request_type(request_type, resource)));
     int result = p + resource.network_delay * 2;
-    // printf("Estimated time for %d is %d\n", request_type, result);
     return result; 
 }
 

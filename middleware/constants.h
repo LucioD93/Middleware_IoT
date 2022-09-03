@@ -5,7 +5,7 @@
 #define WORKERS_PORT 8989
 #define CLIENTS_PORT 8991
 #define MAX_LINE 4096
-#define FILE_BUFFER_SIZE 65356
+#define FILE_BUFFER_SIZE 16384
 #define DEFAULT_MASTER_SERVER_ADDRESS "127.0.0.1"
 #define WORKER_SYNC_TIMER 30
 
@@ -30,9 +30,9 @@ typedef struct sockaddr_in SA_IN;
 typedef struct sockaddr SA;
 
 // Algorithm constants
-#define ALPHA 0.4
-#define BETA 0.3
-#define GAMMA 0.3
+#define ALPHA_CPU_WEIGHT 0.6
+#define BETA_RAM_WEIGHT 0.3
+#define GAMMA_GPU_WEIGHT 0.1
 
 
 #endif //MIDDLEWARE_CONSTANTS_H

@@ -58,14 +58,16 @@ void *handle_client_connection(void* p_client_socket) {
     bytes_read = 0;
     message_size = 0;
     // read the client's message
-    while((bytes_read = read(client_socket, buffer + message_size, 8 - message_size)) > 0) {
+    while((bytes_read = read(client_socket, buffer + message_size, 24 - message_size)) > 0) {
         message_size += bytes_read;
-        if(message_size > 8 || buffer[message_size - 1] == 0) break;
+        if(message_size > 24 || buffer[message_size - 1] == 0) break;
     }
     buffer[message_size - 1] = 0; // null terminate
 
     int request_type, client_port_for_worker;
-    sscanf(buffer, "%d-%d", &request_type, &client_port_for_worker);
+    char client_ip_address[16];
+
+    sscanf(buffer, "%d-%d-%s", &request_type, &client_port_for_worker, client_ip_address);
 
     metadata_node *selected_worker = NULL;
 
@@ -77,19 +79,8 @@ void *handle_client_connection(void* p_client_socket) {
         sleep_for_nanoseconds(50);
     }
 
-    printf("Assigned request %d to worker %s\n", request_type, selected_worker->worker_metadata->uuid);
-
-    SA_IN client_address;
-    int len;
-    len = sizeof(client_address);
     char request_representation[MAX_LINE];
-    check(
-        getpeername(client_socket, (SA *)&client_address, &len),
-        "Failed getpeername"
-    );
-
-    strcpy(request_representation, inet_ntoa(client_address.sin_addr));
-    // strcpy(request_representation, "127.0.0.1");
+    strcpy(request_representation, client_ip_address);
     strcat(request_representation, " | ");
     strcat(request_representation, buffer);
     int sendbytes = 26;

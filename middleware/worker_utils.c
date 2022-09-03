@@ -119,7 +119,7 @@ _Noreturn void * master_connection_thread_function(void *arg) {
     int *tasks_tracker = arg;
     while (true) {
         // Semaphores!
-        // sem_wait(&sem_producer);
+        sem_wait(&sem_producer);
         pthread_mutex_lock(&master_pool_mutex);
         node_t *result = dequeue_master_connection();
         pthread_mutex_unlock(&master_pool_mutex);
@@ -190,7 +190,7 @@ _Noreturn void master_worker_server(void *args) {
         // sem_wait(&sem_consumer);
         pthread_mutex_lock(&master_pool_mutex);
         enqueue_master_connection(p_client, request_type, client_ip, client_port);
-        // sem_post(&sem_producer);
+        sem_post(&sem_producer);
         pthread_mutex_unlock(&master_pool_mutex);
     }
 }

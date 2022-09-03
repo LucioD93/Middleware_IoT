@@ -71,7 +71,8 @@ void *worker_connection_function(int request_type, char filename[MAX_LINE], int 
 
 void client_function(
     int request_type,
-    char master_server_address[16]
+    char master_server_address[16],
+    char client_ip_address[16]
 ) {
     if (request_type == 7) {
         request_type = rand() % 6 + 1;
@@ -150,8 +151,8 @@ void client_function(
         "Connection to master failed"
     );
 
-    sprintf(line_to_send, "%d-%d", request_type, worker_port);
-    bytes_to_send = 8;
+    sprintf(line_to_send, "%d-%d-%s", request_type, worker_port, client_ip_address);
+    bytes_to_send = 24;
 
     check(
         (write(master_socket, &line_to_send, bytes_to_send) != bytes_to_send),

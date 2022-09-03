@@ -22,7 +22,8 @@
 
 void client_function(
     int request_type,
-    char master_server_address[16]
+    char master_server_address[16],
+    char client_ip_address[16]
 );
 
 #endif //MIDDLEWARE_CLIENT_UTILS_H

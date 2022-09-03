@@ -16,7 +16,8 @@ void print_usage() {
 
 typedef struct CA {
     int request_type;
-    char master_server_address[MAX_LINE];
+    char master_server_address[16];
+    char client_address[16];
 } client_args;
 
 
@@ -24,11 +25,12 @@ void *client_thread_function(void *args) {
     client_args actual_args = *((client_args *)args);
     int request_type = actual_args.request_type;
     char *master_server_address = actual_args.master_server_address;
+    char *client_address = actual_args.client_address;
     
     struct timeval start, end;
     gettimeofday(&start, NULL);
-    
-    client_function(request_type, master_server_address);
+
+    client_function(request_type, master_server_address, client_address);
     
     gettimeofday(&end, NULL);
     float delta = ((end.tv_sec  - start.tv_sec) * 1000000u + end.tv_usec - start.tv_usec) / 1.e6;
@@ -38,10 +40,13 @@ void *client_thread_function(void *args) {
     return time;
 }
 
+
 int main(int argc, char *argv[]) {
     int option, request_type, number_of_requests = 1;
     char master_server_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
-    while((option = getopt(argc, argv, "r:a:n:")) != -1) {
+    char client_address[16] = DEFAULT_MASTER_SERVER_ADDRESS;
+
+    while((option = getopt(argc, argv, "r:a:n:i:")) != -1) {
         switch(option) {
         case 'n': // Number of requests
             number_of_requests = atoi(optarg);
@@ -51,6 +56,9 @@ int main(int argc, char *argv[]) {
             break;
         case 'a': // Master server address
             strcpy(master_server_address, optarg);
+            break;
+        case 'i': // Client address
+            strcpy(client_address, optarg);
             break;
         case 'h':
             print_usage();
@@ -70,6 +78,10 @@ int main(int argc, char *argv[]) {
         printf("Invalid IP address for master server\n");
         exit(1);
     }
+    if (!isValidIpAddress(client_address)) {
+        printf("Invalid IP address for client\n");
+        exit(1);
+    }
     
     pthread_t clients_thread_pool[number_of_requests];
     client_args *args_for_client[number_of_requests];
@@ -83,6 +95,7 @@ int main(int argc, char *argv[]) {
         args_for_client[i] = malloc(sizeof(client_args));
         args_for_client[i]->request_type = request_type;
         strcpy(args_for_client[i]->master_server_address, master_server_address);
+        strcpy(args_for_client[i]->client_address, client_address);
         pthread_create(
             &clients_thread_pool[i],
             NULL,
