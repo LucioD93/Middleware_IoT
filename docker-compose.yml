@@ -3,10 +3,10 @@ services:
     compiler:
       container_name: middleware-compiler
       build:
-        context: middleware
-        dockerfile: Dockerfile
+        context: .
+        dockerfile: middleware/Dockerfile
       volumes:
-        - "./middleware:/code"
+        - ".:/code"
       ports:
         - "8989:8989"
       entrypoint: /bin/sh
